@@ -1,20 +1,27 @@
 import argparse
-
 def get_args():
     parser = argparse.ArgumentParser('Model Training Arguments')
-    parser.add_argument('-seed', type=int, default=28)
-    parser.add_argument('-backbone', type=str, default='resnet34',
-                        choices=['resnet18', 'resnet34', 'resnet50'])
-    parser.add_argument('-data', type=str, default='data/brisc2025/classification_task')
-    parser.add_argument('-n_folds', type=int, default=5)
-    parser.add_argument('-batch_size', type=int, default=64,
-                        choices=[32, 64, 128, 256])
-    parser.add_argument('-lr', type=float, default=1e-3,
-                        choices=[1e-3, 1e-4, 1e-5])
-    parser.add_argument('-epochs', type=int, default=1000,
-                        choices=[500, 1000, 2000])
-    parser.add_argument('-csv_dir', type=str, default='CSVs',)
-    parser.add_argument('-output_dir', type=str, default='output',)
 
-    return parser.parse_args()
+    # File paths
+    data_group = parser.add_argument_group('Data Options')
+    data_group.add_argument('-data', type=str, default='data/brisc2025/classification_task')
+    data_group.add_argument('-csv_dir', type=str, default='CSVs')
+    data_group.add_argument('-output_dir', type=str, default='output')
+
+    # Training
+    train_group = parser.add_argument_group('Training Options')
+    train_group.add_argument('-batch_size', type=int, default=32, choices=[16, 24, 32])
+    train_group.add_argument('-num_workers', type=int, default=8, choices=[4, 6, 8])
+    train_group.add_argument('-pre_fetch', type=int, default=4, choices=[1, 2, 4])
+    train_group.add_argument('-epochs', type=int, default=100, choices=[100, 500, 1000])
+    train_group.add_argument('-lr', type=float, default=1e-3, choices=[1e-3, 1e-4, 1e-5])
+    train_group.add_argument('-n_folds', type=int, default=5)
+
+    # Backbone and seed
+    misc_group = parser.add_argument_group('Miscellaneous')
+    misc_group.add_argument('-backbone', type=str, default='resnet34', choices=['resnet18', 'resnet50'])
+    misc_group.add_argument('-seed', type=int, default=28)
+
+    args = parser.parse_args()
+    return args
 
