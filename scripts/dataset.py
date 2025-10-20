@@ -105,10 +105,10 @@ def read_mri(path):
 class MRI_dataset(Dataset):
     """Class for initializing dataset."""
     def __init__(self, dataset):
-        self.dataset = dataset
+        self._dataset = dataset
 
         # Label map for numerical encodings
-        self.label_map = {
+        self._label_map = {
             'pituitary': 0,
             'meningioma': 1,
             'glioma': 2,
@@ -116,23 +116,25 @@ class MRI_dataset(Dataset):
         }
 
     def __len__(self):
-        return len(self.dataset)
+        return len(self._dataset)
+
+    def _get_label_tensor(self, label_str):
+        """Convert string label to tensor."""
+        label = self._label_map[label_str]
+        return torch.tensor(label, dtype=torch.long)
+
+    def _get_img_tensor(self, path):
+        """Read MRI image and convert to tensor."""
+        img = read_mri(path)
+        return torch.from_numpy(img)
 
     def __getitem__(self, idx):
-        img = read_mri(self.dataset["Path"].iloc[idx])
-        label_str = self.dataset["Label"].iloc[idx]
+        path = self._dataset["Path"].iloc[idx]
+        label_str = self._dataset["Label"].iloc[idx]
 
-        # Convert string labels to integer
-        label = self.label_map[label_str]
-
-        # Convert to tensors
-        img_tensor = torch.from_numpy(img)
-        label_tensor = torch.tensor(label, dtype=torch.long)
-
-        res = {
-            'img': img_tensor,
-            'label': label_tensor
+        return {
+            'img': self._get_img_tensor(path),
+            'label': self._get_label_tensor(label_str)
         }
-        return res
 
     # TODO: Add pre-processing and transformations if not enough data
