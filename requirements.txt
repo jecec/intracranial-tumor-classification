@@ -2,3 +2,5 @@ numpy
 torchvision
 matplotlib
 seaborn
+opencv-python
+scikit-learn
