@@ -2,20 +2,21 @@ from args import get_args
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from tqdm import tqdm
 
 from utils import metrics
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+args = get_args()
 
 def train(model, train_loader, val_loader, fold):
     """Main training function"""
-    args = get_args()
-    model = model.to(device)
 
+    model = model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         model.train()
         train_loss = 0
 
@@ -38,7 +39,6 @@ def train(model, train_loader, val_loader, fold):
         # Training Metrics
         train_metrics = {
             "loss": train_loss / len(train_loader),}
-
         # TODO: Add more metrics
         # Validation Metrics
         val_metrics = {
@@ -50,7 +50,6 @@ def train(model, train_loader, val_loader, fold):
         # TODO: Add plotting for training loss, validation loss and other metrics
 
         # TODO: Add model checkpoints and saving
-
 def validate(model, val_loader, criterion):
     """Main validation function
 
