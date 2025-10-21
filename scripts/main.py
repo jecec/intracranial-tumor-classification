@@ -16,7 +16,8 @@ def main():
     # Fetch arguments and get device
     args = get_args()
     device = args.device
-
+    checkpoint = None
+    starting_fold = 0
 
     # Prepare folder structure
     setup_project_dirs()
@@ -27,8 +28,17 @@ def main():
     # Creating stratified 5-fold splits
     k_fold_cv(f'{args.csv_dir}/train_metadata.csv')
 
+    # Loading checkpoints
+    if args.resume:
+        checkpoint = torch.load(args.checkpoint_dir, map_location="cpu")
+        starting_fold = checkpoint["fold"]
+        resume_training = True
+        print(f"\nResuming training from fold {starting_fold+1} and epoch {checkpoint['epoch']+1}")
+    else:
+        resume_training = False
+
     ### ITERATE AMONG THE FOLDS AND TRAIN THE MODEL ###
-    for fold in range(args.folds):
+    for fold in range(starting_fold, args.folds):
         print(f"\nTraining on fold {fold + 1} out of {args.folds}")
 
         # 1. Load datasets
@@ -48,14 +58,22 @@ def main():
                                 num_workers=args.num_workers, pin_memory=torch.cuda.is_available(),
                                 prefetch_factor=args.pre_fetch, persistent_workers=True)
 
-        # 4. Initialize the model
-        model = PreTrainedModel(args.backbone, pretrained=True).to(device)
+        # 4. Initialize model with checkpoint weights or pretrained weights
+        if resume_training:
+            model = PreTrainedModel(args.backbone, pretrained=False)
+            model.load_state_dict(checkpoint['state_dict'])
+            model = model.to(device)
+        else:
+            model = PreTrainedModel(args.backbone, pretrained=True).to(device)
 
         # 5. Training the model
-        history= train(model, train_loader, val_loader, fold)
+        history= train(model, train_loader, val_loader, fold, checkpoint)
         # 6. Visualize metrics
         plot_training_metrics(history, fold)
 
+        # Setting variables so only the initial loop is loaded from checkpoint
+        resume_training = False
+        checkpoint = None
     ## MODEL EVALUATION ##
     test_set = pd.read_csv(f'{args.csv_dir}/test_metadata.csv')
     test_dataset = MRI_dataset(test_set)
@@ -65,7 +83,6 @@ def main():
 
     # Printing evaluation metrics and saving plots
     evaluation_metrics(aggregated, all_metrics)
-
 
 if __name__ == '__main__':
     main()
