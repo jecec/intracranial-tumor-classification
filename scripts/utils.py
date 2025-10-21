@@ -1,3 +1,4 @@
+import pickle
 import cv2
 import numpy as np
 from pathlib import Path
@@ -86,12 +87,14 @@ def plot_training_metrics(history, fold):
     plt.close()
 
 def evaluation_metrics(aggregated, all_metrics):
-    """Function for plotting evaluation metrics"""
+    """Function for plotting and saving evaluation metrics"""
+
+    # TODO: Implement saving metrics to a file
     headers = ["Metric", "Mean", "Std"]
 
     data = []
     # Print mean and std of aggregated scalar metrics
-    for key, value in aggregated[0].items():
+    for key, value in aggregated["scalar"].items():
         mean = np.round(value["mean"],3)
         std = np.round(value["std"], 3)
         data.append([str(key), mean, std])
@@ -99,7 +102,7 @@ def evaluation_metrics(aggregated, all_metrics):
 
     # Print mean and std of per class metrics by class
     labels = ["glioma", "meningioma", "no_tumor", "pituitary"]
-    metrics = aggregated[1]
+    metrics = aggregated["per_label"]
 
     df = pd.DataFrame({
         'Label': labels,
@@ -119,7 +122,7 @@ def evaluation_metrics(aggregated, all_metrics):
 
 def aggregate_metrics(metrics):
     """Function for aggregating metrics"""
-    aggregated = []
+    aggregated = {}
     scalar_metric = {}
     array_metric = {}
 
@@ -148,6 +151,6 @@ def aggregate_metrics(metrics):
             "std": np.std(values, axis=0),
             "values": values
         }
-    aggregated.append(scalar_metric)
-    aggregated.append(array_metric)
+    aggregated["scalar"] = scalar_metric
+    aggregated["per_label"] = array_metric
     return aggregated
