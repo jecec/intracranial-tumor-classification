@@ -57,18 +57,18 @@ def k_fold_cv(path):
         Creates {fold}_{index}_train.csv and {fold}_{index}_train.csv.
     """
 
-    skf = StratifiedKFold(n_splits=args.n_folds, shuffle=True, random_state=args.seed)
+    skf = StratifiedKFold(n_splits=args.folds, shuffle=True, random_state=args.seed)
     data = pd.read_csv(path)
 
     # Check if all fold files already exist
-    all_n_folds_exist = all(
+    all_folds_exist = all(
         os.path.exists(f"{args.csv_dir}/fold_{fold}_train.csv") and
         os.path.exists(f"{args.csv_dir}/fold_{fold}_val.csv")
-        for fold in range(args.n_folds)
+        for fold in range(args.folds)
     )
 
-    if all_n_folds_exist:
-        print(f"All {args.n_folds} fold files already exist in {args.csv_dir}. Skipping k-fold creation.")
+    if all_folds_exist:
+        print(f"All {args.folds} fold files already exist in {args.csv_dir}. Skipping k-fold creation.")
         return
 
     # If folds don't exist, create them
