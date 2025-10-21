@@ -12,12 +12,10 @@ def print_metrics(train, val, epoch, fold):
     print(f"\nValidation metrics:")
     print(f"Loss: {val['loss']:.4f}")
     print(f"Balanced Accuracy: {val['balanced_accuracy']:.4f}")
-    # More detailed metrics every 25 epochs
-    if epoch % 5 == 0:
-        print(f"Macro F1 Score: {val['macro_f1']:.4f}")
-        print(f"Macro Precision: {val['per_label_f1']}")
-        print(f"Roc-AUC-Macro: {val['roc_auc_ovr']:.4f}")
-        print(f"Roc-AUC: {val['roc_auc']}")
+    print(f"Macro F1 Score: {val['macro_f1']:.4f}")
+    print(f"Macro Precision: {val['per_label_f1']}")
+    print(f"Roc-AUC-Macro: {val['roc_auc_macro']:.4f}")
+    print(f"Roc-AUC: {val['roc_auc']}")
 
 def resize_pad(img, target_size=512):
     """Function for resizing and adding padding to images that are not in the standard 512x512 shape"""
