@@ -1,11 +1,23 @@
 import cv2
 import numpy as np
+from pathlib import Path
 
-def metrics(train, val, epoch, fold):
+def print_metrics(train, val, epoch, fold):
     """Print metrics of training and validation"""
-    print(f"-- Fold: {fold+1}, Epoch: {epoch+1} --")
-    print(f"Training loss: {train['loss']:.4f}")
-    print(f"Validation loss: {val['loss']:.4f}")
+    print(f"\n-- Fold: {fold+1}, Epoch: {epoch+1} --")
+    print("Training metrics:")
+    print(f"Loss: {train['loss']:.4f}")
+    print(f"Balanced Accuracy: {train['balanced_accuracy']:.4f}")
+
+    print(f"\nValidation metrics:")
+    print(f"Loss: {val['loss']:.4f}")
+    print(f"Balanced Accuracy: {val['balanced_accuracy']:.4f}")
+    # More detailed metrics every 25 epochs
+    if epoch % 5 == 0:
+        print(f"Macro F1 Score: {val['macro_f1']:.4f}")
+        print(f"Macro Precision: {val['per_label_f1']}")
+        print(f"Roc-AUC-Macro: {val['roc_auc_ovr']:.4f}")
+        print(f"Roc-AUC: {val['roc_auc']}")
 
 def resize_pad(img, target_size=512):
     """Function for resizing and adding padding to images that are not in the standard 512x512 shape"""
@@ -30,5 +42,15 @@ def show_img(img):
     cv2.imshow("Image", img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+def setup_project_dirs():
+    """Helper function for setting up required project dirs"""
+    folders = [
+        Path("output/models"),
+        Path("CSVs"),
+        Path("data"),
+    ]
+    for folder in folders:
+        folder.mkdir(parents=True, exist_ok=True)
 
 # TODO: Create helper function for plotting and visualization
