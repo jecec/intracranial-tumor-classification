@@ -6,12 +6,12 @@ from sklearn.metrics import *
 from tqdm import tqdm
 import numpy as np
 
-from utils import print_metrics, plot_training_metrics
+from utils import print_metrics
 
 args = get_args()
 device = args.device
 
-def train(model, train_loader, val_loader, fold):
+def train(model, train_loader, val_loader, fold, checkpoint):
     """Main training function"""
 
     best_acc = 0.0
@@ -21,12 +21,16 @@ def train(model, train_loader, val_loader, fold):
         "train_bac": [],
         "val_bac": [],
     }
-
-    model = model.to(device)
-    criterion = nn.CrossEntropyLoss()
+    starting_epoch = 0
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    criterion = nn.CrossEntropyLoss()
+    # Load state_dict from checkpoint if desired
+    if checkpoint is not None:
+        optimizer.load_state_dict(checkpoint["optimizer"])
+        starting_epoch = checkpoint["epoch"]
+        history = checkpoint["history"]
 
-    for epoch in tqdm(range(args.epochs)):
+    for epoch in tqdm(range(starting_epoch, args.epochs)):
         model.train()
         train_loss = 0
 
@@ -71,23 +75,21 @@ def train(model, train_loader, val_loader, fold):
         history["val_bac"].append(val_metrics["balanced_accuracy"])
 
 
-        # Printing metrics every 5 epochs
+        # Printing metrics every 5 epochs and saving checkpoint
         if (epoch+1) % 5 == 0:
             print_metrics(train_metrics, val_metrics, epoch, fold)
+            checkpoint = {
+                'epoch': epoch,
+                'fold': fold,
+                'state_dict': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'history': history
+            }
+            torch.save(checkpoint, args.checkpoint_dir)
 
         # Saving model based on balanced accuracy score
         if val_metrics["balanced_accuracy"] > best_acc:
             best_acc = val_metrics["balanced_accuracy"]
-            # TODO: Add model checkpoints
-            '''
-            checkpoint = {
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'train_metrics': train_metrics,
-                'val_metrics': val_metrics,
-            }
-            '''
             torch.save(model.state_dict(), f"{args.model_dir}/best_model_f_{fold+1}.pth")
 
     return history
