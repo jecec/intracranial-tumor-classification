@@ -6,7 +6,7 @@ from sklearn.metrics import *
 from tqdm import tqdm
 import numpy as np
 
-from utils import print_metrics
+from utils import print_metrics, plot_training_metrics
 
 args = get_args()
 device = args.device
@@ -14,9 +14,16 @@ device = args.device
 def train(model, train_loader, val_loader, fold):
     """Main training function"""
 
+    best_acc = 0.0
+    history = {
+        "train_loss": [],
+        "val_loss": [],
+        "train_bac": [],
+        "val_bac": [],
+    }
+
     model = model.to(device)
     criterion = nn.CrossEntropyLoss()
-    best_acc = 0.0
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     for epoch in tqdm(range(args.epochs)):
@@ -46,20 +53,32 @@ def train(model, train_loader, val_loader, fold):
 
         train_targets = np.concatenate(train_targets, axis=0)
         train_preds = np.concatenate(train_preds, axis=0)
-        train_probs = np.concatenate(train_probs, axis=0)
 
         # Training Metrics
         train_metrics = {
             "loss": train_loss / len(train_loader),
+            "accuracy": accuracy_score(train_targets, train_preds),
             "balanced_accuracy": balanced_accuracy_score(train_targets, train_preds),
 
         }
         # Validation Metrics
         val_metrics = validate(model, val_loader, criterion)
-        if epoch % 5 == 0 & epoch != 0:
+
+        # Logging metrics for plotting
+        history["train_loss"].append(train_loss)
+        history["val_loss"].append(val_metrics["loss"])
+        history["train_bac"].append(train_metrics["balanced_accuracy"])
+        history["val_bac"].append(val_metrics["balanced_accuracy"])
+
+
+        # Printing metrics every 5 epochs
+        if (epoch+1) % 5 == 0:
             print_metrics(train_metrics, val_metrics, epoch, fold)
+
+        # Saving model based on balanced accuracy score
         if val_metrics["balanced_accuracy"] > best_acc:
             best_acc = val_metrics["balanced_accuracy"]
+            # TODO: Add model checkpoints
             '''
             checkpoint = {
                 'epoch': epoch,
@@ -71,9 +90,9 @@ def train(model, train_loader, val_loader, fold):
             '''
             torch.save(model.state_dict(), f"{args.model_dir}/best_model_f_{fold+1}.pth")
 
-        # TODO: Add plotting for training loss, validation loss and other metrics
+    return history
 
-        # TODO: Add model checkpoints
+
 def validate(model, val_loader, criterion):
     """Main validation function
 
@@ -95,7 +114,7 @@ def validate(model, val_loader, criterion):
             val_loss += loss.item()
 
             val_targets.append(targets.detach().cpu().numpy())
-            val_preds.append(torch.argmax(outputs, dim= 1).detach().cpu().numpy())
+            val_preds.append(torch.argmax(outputs, dim=1).detach().cpu().numpy())
             val_probs.append(torch.softmax(outputs, dim=1).detach().cpu().numpy())
 
         val_targets = np.concatenate(val_targets, axis=0)
@@ -104,12 +123,13 @@ def validate(model, val_loader, criterion):
 
         metrics = {
             "loss": val_loss / len(val_loader),
+            "accuracy": accuracy_score(val_targets, val_preds),
             "balanced_accuracy": balanced_accuracy_score(val_targets, val_preds),
             "macro_f1": f1_score(val_targets, val_preds, average="macro"),
             "per_label_f1": f1_score(val_targets, val_preds, average=None),
             "roc_auc_macro": roc_auc_score(val_targets, val_probs, multi_class="ovr", average="macro"),
-            "roc_auc": roc_auc_score(val_targets, val_probs, multi_class="ovr", average=None),
-
-
+            "per_label_roc_auc": roc_auc_score(val_targets, val_probs, multi_class="ovr", average=None),
+            "confusion_matrix": confusion_matrix(val_targets, val_preds),
         }
+
         return metrics
