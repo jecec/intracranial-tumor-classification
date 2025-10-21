@@ -6,15 +6,17 @@ import os
 from dataset import prepare_dataset, k_fold_cv, MRI_dataset
 from args import get_args
 from model import PreTrainedModel
+from scripts.utils import aggregate_metrics
 from trainer import train
 from evaluate import evaluate
-from utils import setup_project_dirs
+from utils import setup_project_dirs, plot_training_metrics, evaluation_metrics
 
 def main():
 
     # Fetch arguments and get device
     args = get_args()
     device = args.device
+
 
     # Prepare folder structure
     setup_project_dirs()
@@ -50,13 +52,19 @@ def main():
         model = PreTrainedModel(args.backbone, pretrained=True).to(device)
 
         # 5. Training the model
-        train(model, train_loader, val_loader, fold)
+        history= train(model, train_loader, val_loader, fold)
+        # 6. Visualize metrics
+        plot_training_metrics(history, fold)
 
     ## MODEL EVALUATION ##
     test_set = pd.read_csv(f'{args.csv_dir}/test_metadata.csv')
     test_dataset = MRI_dataset(test_set)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
-    evaluate(test_loader)
+    all_metrics = evaluate(test_loader)
+    aggregated = aggregate_metrics(all_metrics)
+
+    # Printing evaluation metrics and saving plots
+    evaluation_metrics(aggregated, all_metrics)
 
 
 if __name__ == '__main__':
