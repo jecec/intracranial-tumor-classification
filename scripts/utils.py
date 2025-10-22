@@ -1,11 +1,12 @@
-import pickle
 import cv2
 import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn.metrics import ConfusionMatrixDisplay
 from tabulate import tabulate
-import pandas as pd
+import json
+import copy
+import os
 
 from args import get_args
 args = get_args()
@@ -89,29 +90,32 @@ def plot_training_metrics(history, fold):
 def evaluation_metrics(aggregated, all_metrics):
     """Function for plotting and saving evaluation metrics"""
 
-    # TODO: Implement saving metrics to a file
-    headers = ["Metric", "Mean", "Std"]
-
-    data = []
     # Print mean and std of aggregated scalar metrics
+    headers = ["Metric", "Mean", "Std"]
+    data = []
     for key, value in aggregated["scalar"].items():
-        mean = np.round(value["mean"],3)
+        mean = np.round(value["mean"], 3)
         std = np.round(value["std"], 3)
         data.append([str(key), mean, std])
+    print("\n-- Aggregated evaluation metrics --")
     print(tabulate(data, headers=headers))
 
     # Print mean and std of per class metrics by class
     labels = ["glioma", "meningioma", "no_tumor", "pituitary"]
+    headers = ["Class", "F1 (mean)", "F1 (std)", "ROC AUC (mean)", "ROC AUC (std)"]
     metrics = aggregated["per_label"]
 
-    df = pd.DataFrame({
-        'Label': labels,
-        'F1 (mean)': metrics["per_label_f1"]["mean"],
-        'F1 (std)': metrics["per_label_f1"]["std"],
-        'ROC AUC (mean)': metrics["per_label_roc_auc"]["mean"],
-        'ROC AUC (std)': metrics["per_label_roc_auc"]["std"]
-    })
-    print("\n", df.to_string(index=False))
+    per_label_data = []
+    for i, label in enumerate(labels):
+        per_label_data.append([
+            label,
+            np.round(metrics["per_label_f1"]["mean"][i], 3),
+            np.round(metrics["per_label_f1"]["std"][i], 3),
+            np.round(metrics["per_label_roc_auc"]["mean"][i], 3),
+            np.round(metrics["per_label_roc_auc"]["std"][i], 3)
+        ])
+    print("\n-- Aggregated evaluation metrics per label --")
+    print(tabulate(per_label_data, headers=headers))
 
     # Save confusion matrices for each fold
     for fold in range(args.folds):
@@ -121,7 +125,7 @@ def evaluation_metrics(aggregated, all_metrics):
         plt.close()
 
 def aggregate_metrics(metrics):
-    """Function for aggregating metrics"""
+    """Function for aggregating metrics across folds"""
     aggregated = {}
     scalar_metric = {}
     array_metric = {}
@@ -132,7 +136,6 @@ def aggregate_metrics(metrics):
     for metric in scalar_metrics:
         values = [fold[metric] for fold in metrics]
         scalar_metric[metric] = {
-            "metric": metric,
             "mean": np.mean(values),
             "std": np.std(values),
             "values": values
@@ -154,3 +157,37 @@ def aggregate_metrics(metrics):
     aggregated["scalar"] = scalar_metric
     aggregated["per_label"] = array_metric
     return aggregated
+
+def save_metrics(metrics_to_save, fold):
+    """Function for saving metrics into a json file
+
+    Output:
+        metrics.json: Metrics by fold stored in json in the output folder
+    """
+    metrics = copy.deepcopy(metrics_to_save)
+    if fold == 1:
+        os.remove(f'{args.output_dir}/metrics.json')
+    # Process metrics
+    processed_metrics = {}
+    for key, value in metrics.items():
+        if key == "confusion_matrix":
+            continue
+        if type(value) == np.ndarray:
+            processed_metrics[key] = value.tolist()
+        else:
+            processed_metrics[key] = value
+
+    # Read existing data if file exists
+    filepath = f'{args.output_dir}/metrics.json'
+    if os.path.exists(filepath):
+        with open(filepath, 'r') as file:
+            all_metrics = json.load(file)
+    else:
+        all_metrics = {}
+
+    # Add the new fold
+    all_metrics[f'fold_{fold}'] = processed_metrics
+
+    # Write back to file
+    with open(filepath, 'w') as file:
+        json.dump(all_metrics, file, indent=4)
