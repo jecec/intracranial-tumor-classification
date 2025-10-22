@@ -1,8 +1,9 @@
 ## Intracranial Tumor Classification with the BRISC 2025 dataset
-A deep learning project that classifies tumors from MRI utilizing transfer learning.
+Deep learning project focused in utilizing transfer learning for tumor classification from MRI data.
 
 ## Installation
-Requirements can be installed from the requirements.txt
+Required libraries can be installed from the requirements.txt using command:
+pip install -r requirements.txt
 
 ## Dataset Attribution
 This project uses the **BRISC 2025** dataset (https://www.kaggle.com/datasets/briscdataset/brisc2025), 
