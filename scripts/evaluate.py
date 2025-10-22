@@ -1,12 +1,11 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
 from pathlib import Path
-
 from sklearn.metrics import *
 
 from args import get_args
+from utils import save_metrics
 from model import PreTrainedModel
 
 args = get_args()
@@ -16,7 +15,7 @@ def evaluate(test_loader):
     """Main evaluation function"""
     criterion = nn.CrossEntropyLoss()
     fold_metrics = []
-    for path in Path(args.model_dir).iterdir():
+    for fold, path in enumerate(Path(args.model_dir).iterdir()):
         model = PreTrainedModel(args.backbone, pretrained=False).to(device)
         model.load_state_dict(torch.load(path, weights_only=True))
 
@@ -50,6 +49,8 @@ def evaluate(test_loader):
             "per_label_roc_auc": roc_auc_score(targets, probs, multi_class="ovr", average=None),
             "confusion_matrix": confusion_matrix(targets, preds)
         }
+
+        save_metrics(metrics, fold+1)
 
         fold_metrics.append(metrics)
 
