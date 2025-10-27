@@ -7,6 +7,7 @@ from tabulate import tabulate
 import json
 import copy
 import os
+import pickle
 
 from args import get_args
 args = get_args()
@@ -22,7 +23,7 @@ def print_metrics(train, val, epoch, fold):
     print(f"Loss: {val['loss']:.4f}")
     print(f"Balanced Accuracy: {val['balanced_accuracy']:.4f}")
     print(f"Macro F1 Score: {val['macro_f1']:.4f}")
-    print(f"Macro Precision per Label: {val['per_label_f1']}")
+    print(f"F1 Precision per Label: {val['per_label_f1']}")
     print(f"Roc-AUC-Macro: {val['roc_auc_macro']:.4f}")
     print(f"Roc-AUC per Label: {val['per_label_roc_auc']}")
     print("------------------------")
@@ -158,7 +159,17 @@ def aggregate_metrics(metrics):
     aggregated["per_label"] = array_metric
     return aggregated
 
-def save_metrics(metrics_to_save, fold):
+def save_metrics_pkl(metrics, fold):
+    """Function for saving metrics into a json file
+
+    Output:
+        metrics.json: Metrics by fold stored in json in the output folder
+    """
+    filepath = os.path.join(args.output_dir, f'metrics_fold_{fold}.pkl')
+    with open(filepath, 'wb') as file:
+        pickle.dump(metrics, file)
+
+def save_metrics_json(metrics_to_save, fold):
     """Function for saving metrics into a json file
 
     Output:
