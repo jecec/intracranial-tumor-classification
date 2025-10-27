@@ -13,8 +13,10 @@ device = args.device
 
 def train(model, train_loader, val_loader, fold, checkpoint):
     """Main training function"""
+    # TODO: Implement early stopping
+    # TODO: Add more hyperparameters and training options here, such as batch normalization, learning rate scheduler etc.
 
-    best_acc = 0.0
+    best_bac = 0.0
     history = {
         "train_loss": [],
         "val_loss": [],
@@ -33,8 +35,7 @@ def train(model, train_loader, val_loader, fold, checkpoint):
     for epoch in tqdm(range(starting_epoch, args.epochs)):
         model.train()
         train_loss = 0
-
-        train_targets, train_preds, train_probs = [], [], []
+        train_targets, train_preds = [], []
         for batch in train_loader:
             # Load batch data
             inputs = batch['img'].to(device)
@@ -42,7 +43,6 @@ def train(model, train_loader, val_loader, fold, checkpoint):
 
             # Resetting the gradients
             optimizer.zero_grad()
-
             outputs = model(inputs)
             loss = criterion(outputs, targets)
             loss.backward()
@@ -52,8 +52,6 @@ def train(model, train_loader, val_loader, fold, checkpoint):
 
             train_targets.append(targets.detach().cpu().numpy())
             train_preds.append(torch.argmax(outputs, dim= 1).detach().cpu().numpy())
-            train_probs.append(torch.softmax(outputs, dim=1).detach().cpu().numpy())
-
 
         train_targets = np.concatenate(train_targets, axis=0)
         train_preds = np.concatenate(train_preds, axis=0)
@@ -88,9 +86,17 @@ def train(model, train_loader, val_loader, fold, checkpoint):
             torch.save(checkpoint, args.checkpoint_dir)
 
         # Saving model based on balanced accuracy score
-        if val_metrics["balanced_accuracy"] > best_acc:
-            best_acc = val_metrics["balanced_accuracy"]
-            torch.save(model.state_dict(), f"{args.model_dir}/best_model_f_{fold+1}.pth")
+        if val_metrics["balanced_accuracy"] > best_bac:
+            best_bac = val_metrics["balanced_accuracy"]
+            checkpoint = {
+                'epoch': epoch,
+                'fold': fold,
+                'state_dict': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'train_metrics': train_metrics,
+                'val_metrics': val_metrics,
+            }
+            torch.save(checkpoint, f"{args.model_dir}/best_model_f_{fold+1}.pth")
 
     return history
 
@@ -104,10 +110,10 @@ def validate(model, val_loader, criterion):
 
     val_loss = 0
     val_targets, val_preds, val_probs = [], [], []
+    model.eval()
 
     with torch.no_grad():
         for batch in val_loader:
-            model.eval()
             inputs = batch['img'].to(device)
             targets = batch['label'].to(device)
             outputs = model(inputs)
@@ -123,6 +129,7 @@ def validate(model, val_loader, criterion):
         val_preds = np.concatenate(val_preds, axis=0)
         val_probs = np.concatenate(val_probs, axis=0)
 
+        # TODO: Look deeper into metrics and collect only ones which are useful in this task
         metrics = {
             "loss": val_loss / len(val_loader),
             "accuracy": accuracy_score(val_targets, val_preds),
