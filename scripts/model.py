@@ -1,6 +1,6 @@
 from args import get_args
 import torch.nn as nn
-from torchvision.models import resnet18, ResNet18_Weights, resnet34, ResNet34_Weights, resnet50, ResNet50_Weights
+from torchvision.models import resnet18, ResNet18_Weights, resnet34, ResNet34_Weights, resnet50, ResNet50_Weights, resnet101, ResNet101_Weights
 
 args = get_args()
 
@@ -18,11 +18,24 @@ class PreTrainedModel(nn.Module):
         elif backbone == 'resnet50':
             weights = ResNet50_Weights.DEFAULT if pretrained else None
             self.model = resnet50(weights=weights)
-        else:
-            raise ValueError(f"Unsupported backbone: {backbone}")
+        elif backbone == 'resnet101':
+            weights = ResNet101_Weights.DEFAULT if pretrained else None
+            self.model = resnet101(weights=weights)
 
         # Replace the final fully connected layer
-        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes)
+        in_features = self.model.fc.in_features
+        self.model.fc = nn.Identity()
+
+        # Add a custom classification head
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5),
+            nn.Linear(in_features, 256),
+            nn.ReLU(),
+            nn.BatchNorm1d(256),
+            nn.Linear(256, num_classes)
+        )
 
     def forward(self, x):
-        return self.model(x)
+        x = self.model(x)
+        x = self.classifier(x)
+        return x
