@@ -12,5 +12,5 @@ which is licensed under the Creative Commons Attribution 4.0 International Licen
 The dataset is not included in this repository.
 
 ## License
-This project's **source code** is licensed under the BSD 3-Clause License.
+This project's **source code** is licensed under the MIT License.
 The **dataset** is licensed under the Creative Commons Attribution 4.0 International (CC BY 4.0) license.
