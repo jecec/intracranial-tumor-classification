@@ -17,13 +17,14 @@ def get_args():
     train_group.add_argument('-batch_size', type=int, default=32, choices=[16, 24, 32])
     train_group.add_argument('-num_workers', type=int, default=8, choices=[4, 6, 8])
     train_group.add_argument('-pre_fetch', type=int, default=4, choices=[1, 2, 4])
-    train_group.add_argument('-epochs', type=int, default=75, choices=[50, 75, 100])
-    train_group.add_argument('-lr', type=float, default=1e-3, choices=[1e-3, 1e-4, 1e-5])
+    train_group.add_argument('-epochs', type=int, default=10, choices=[5, 10, 15])
+    train_group.add_argument('-lr', type=float, default=1e-4, choices=[1e-3, 1e-4, 1e-5])
     train_group.add_argument('-folds', type=int, default=5)
+
 
     # Miscellaneous options such as resume for resuming training from saved checkpoints
     misc_group = parser.add_argument_group('Miscellaneous')
-    misc_group.add_argument('-backbone', type=str, default='resnet34', choices=['resnet18', 'resnet34', 'resnet50'])
+    misc_group.add_argument('-backbone', type=str, default='resnet101', choices=['resnet18', 'resnet34', 'resnet50', 'resnet101'])
     misc_group.add_argument('-seed', type=int, default=28)
     misc_group.add_argument('-device', type=str, default=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     misc_group.add_argument('-resume', type=bool, default=False, choices=[True, False])
