@@ -3,7 +3,7 @@ import pandas as pd
 from torch.utils.data import DataLoader
 import os
 
-from dataset import prepare_dataset, k_fold_cv, MRI_dataset
+from dataset import prepare_dataset, k_fold_cv, MRI_dataset, transforms
 from args import get_args
 from model import PreTrainedModel
 from scripts.utils import aggregate_metrics
@@ -12,7 +12,7 @@ from evaluate import evaluate
 from utils import setup_project_dirs, plot_training_metrics, evaluation_metrics
 
 def main():
-
+    # TODO: Add skip training for evaluation of the model only
     # Fetch arguments and get device
     args = get_args()
     device = args.device
@@ -47,14 +47,14 @@ def main():
 
 
         # 2. Prepare datasets
-        train_dataset = MRI_dataset(train_set)
-        val_dataset = MRI_dataset(val_set)
+        train_dataset = MRI_dataset(train_set, transform = transforms('train'))
+        val_dataset = MRI_dataset(val_set, transform = transforms('val'))
 
         # 3. Create data loaders
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                                   num_workers=args.num_workers, pin_memory=torch.cuda.is_available(),
                                   prefetch_factor=args.pre_fetch, persistent_workers=True)
-        val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True,
+        val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
                                 num_workers=args.num_workers, pin_memory=torch.cuda.is_available(),
                                 prefetch_factor=args.pre_fetch, persistent_workers=True)
 
@@ -74,9 +74,10 @@ def main():
         # Setting variables so only the initial loop is loaded from checkpoint
         resume_training = False
         checkpoint = None
+
     ## MODEL EVALUATION ##
     test_set = pd.read_csv(f'{args.csv_dir}/test_metadata.csv')
-    test_dataset = MRI_dataset(test_set)
+    test_dataset = MRI_dataset(test_set, transform = transforms('val'))
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
     all_metrics = evaluate(test_loader)
     aggregated = aggregate_metrics(all_metrics)
