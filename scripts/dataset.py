@@ -6,6 +6,7 @@ import pandas as pd
 from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import Dataset
 import torch
+from torchvision.transforms import v2
 
 from args import get_args
 from utils import resize_pad
@@ -90,23 +91,16 @@ def read_mri(path):
     # Add padding and resizing images if they are not 512x512 for uniformity
     if mri.shape != (512, 512):
         mri = resize_pad(mri)
-    # Resizing image to 224x224 required by ResNet
-    mri = cv2.resize(mri, (224, 224))
-    # Normalizing the images
-    mri = mri.astype(np.float32) / 255.0
-    # Converting greyscale images to a suitable shape for ResNet
-    mri_3ch = np.zeros((3, mri.shape[0], mri.shape[1]), dtype=mri.dtype)
-    mri_3ch[0] = mri
-    mri_3ch[1] = mri
-    mri_3ch[2] = mri
+
+    mri_3ch = np.stack([mri, mri, mri], axis=-1)
 
     return mri_3ch
 
 class MRI_dataset(Dataset):
     """Class for initializing dataset."""
-    def __init__(self, dataset):
+    def __init__(self, dataset, transform=None):
         self.dataset = dataset
-
+        self.transform = transform
         # Label map for numerical encodings
         self._label_map = {
             'glioma': 0,
@@ -118,23 +112,50 @@ class MRI_dataset(Dataset):
     def __len__(self):
         return len(self.dataset)
 
-    def _get_label_tensor(self, label_str):
-        """Convert string label to tensor."""
-        label = self._label_map[label_str]
-        return torch.tensor(label, dtype=torch.long)
-
-    def _get_img_tensor(self, path):
-        """Read MRI image and convert to tensor."""
-        img = read_mri(path)
-        return torch.from_numpy(img)
-
     def __getitem__(self, idx):
         path = self.dataset["Path"].iloc[idx]
+        img = read_mri(path)
+        # Apply transformations if provided
+        if self.transform:
+            img = self.transform(img)
+        else:
+            img = torch.from_numpy(img)
+
         label_str = self.dataset["Label"].iloc[idx]
+        label = self._label_map[label_str]
+        label = torch.tensor(label, dtype=torch.long)
 
         return {
-            'img': self._get_img_tensor(path),
-            'label': self._get_label_tensor(label_str)
+            'img': img,
+            'label': label
         }
 
-    # TODO: Add pre-processing and transformations if not enough data
+def transforms(phase):
+    """Function for applying transformations to dataset.
+
+    args:
+        phase: Either 'train' or 'val' for respective phases.
+                Only resizing and normalization are applied during validation and evaluation.
+    """
+    train_transform = v2.Compose([
+        v2.ToImage(),
+        v2.ToDtype(torch.float32, scale=True),
+        v2.Resize((224, 224), antialias=True),
+        v2.RandomRotation(15),
+        v2.RandomHorizontalFlip(p=0.5),
+        v2.ColorJitter(brightness=0.2, contrast=0.2),
+        v2.Normalize(mean=[0.485, 0.456, 0.406],
+                        std=[0.229, 0.224, 0.225])
+
+    ])
+    val_transform = v2.Compose([
+        v2.ToImage(),
+        v2.ToDtype(torch.float32, scale=True),
+        v2.Resize((224, 224), antialias=True),
+        v2.Normalize(mean=[0.485, 0.456, 0.406],
+                     std=[0.229, 0.224, 0.225])
+    ])
+    if phase == 'train':
+        return train_transform
+    elif phase == 'val':
+        return val_transform
