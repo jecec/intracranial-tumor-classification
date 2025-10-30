@@ -24,10 +24,11 @@ def get_args():
 
     # Miscellaneous options such as resume for resuming training from saved checkpoints
     misc_group = parser.add_argument_group('Miscellaneous')
-    misc_group.add_argument('-backbone', type=str, default='resnet101', choices=['resnet18', 'resnet34', 'resnet50', 'resnet101'])
+    misc_group.add_argument('-backbone', type=str, default='resnet34', choices=['resnet18', 'resnet34', 'resnet50', 'resnet101'])
     misc_group.add_argument('-seed', type=int, default=28)
     misc_group.add_argument('-device', type=str, default=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     misc_group.add_argument('-resume', type=bool, default=False, choices=[True, False])
+    misc_group.add_argument('-num_classes', type=int, default=4)
 
     args = parser.parse_args()
     return args
