@@ -1,13 +1,20 @@
+from torchmetrics.classification import (
+    MulticlassAccuracy,
+    MulticlassF1Score,
+    MulticlassAUROC,
+    MulticlassConfusionMatrix,
+    MulticlassPrecision,
+    MulticlassRecall,
+    MulticlassCohenKappa
+)
+from torchmetrics import MetricCollection
 from args import get_args
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.metrics import *
 from tqdm import tqdm
-import numpy as np
 
 from utils import print_metrics
-
 args = get_args()
 device = args.device
 
@@ -16,16 +23,26 @@ def train(model, train_loader, val_loader, fold, checkpoint):
     # TODO: Implement early stopping
     # TODO: Add more hyperparameters and training options here, such as batch normalization, learning rate scheduler etc.
 
-    best_bac = 0.0
+    # Initialize training metrics using MetricCollection
+    train_metrics_tracker = MetricCollection({
+        'accuracy': MulticlassAccuracy(num_classes=args.num_classes),
+        'balanced_accuracy': MulticlassAccuracy(num_classes=args.num_classes, average='macro'),
+        'precision': MulticlassPrecision(num_classes=args.num_classes, average='macro'),
+        'recall': MulticlassRecall(num_classes=args.num_classes, average='macro'),
+        'cohen_kappa': MulticlassCohenKappa(num_classes=args.num_classes),
+    }).to(device)
+
     history = {
         "train_loss": [],
         "val_loss": [],
         "train_bac": [],
         "val_bac": [],
     }
+    best_bac = 0.0
     starting_epoch = 0
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.CrossEntropyLoss()
+
     # Load state_dict from checkpoint if desired
     if checkpoint is not None:
         optimizer.load_state_dict(checkpoint["optimizer"])
@@ -35,39 +52,44 @@ def train(model, train_loader, val_loader, fold, checkpoint):
     for epoch in tqdm(range(starting_epoch, args.epochs)):
         model.train()
         train_loss = 0
-        train_targets, train_preds = [], []
+
+        # Reset all metrics
+        train_metrics_tracker.reset()
+
         for batch in train_loader:
             # Load batch data
             inputs = batch['img'].to(device)
             targets = batch['label'].to(device)
+            outputs = model(inputs)
 
             # Resetting the gradients
             optimizer.zero_grad()
-            outputs = model(inputs)
+
             loss = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
 
             train_loss += loss.item()
 
-            train_targets.append(targets.detach().cpu().numpy())
-            train_preds.append(torch.argmax(outputs, dim= 1).detach().cpu().numpy())
+            # Update all metrics at once
+            preds = outputs.argmax(dim=1)
+            train_metrics_tracker.update(preds, targets)
 
-        train_targets = np.concatenate(train_targets, axis=0)
-        train_preds = np.concatenate(train_preds, axis=0)
-
-        # Training Metrics
+        train_metrics_computed = train_metrics_tracker.compute()
         train_metrics = {
             "loss": train_loss / len(train_loader),
-            "accuracy": accuracy_score(train_targets, train_preds),
-            "balanced_accuracy": balanced_accuracy_score(train_targets, train_preds),
-
+            "accuracy": train_metrics_computed['accuracy'].item(),
+            "balanced_accuracy": train_metrics_computed['balanced_accuracy'].item(),
+            "precision": train_metrics_computed['precision'].item(),
+            "recall": train_metrics_computed['recall'].item(),
+            "cohen_kappa": train_metrics_computed['cohen_kappa'].item(),
         }
+
         # Validation Metrics
         val_metrics = validate(model, val_loader, criterion)
 
         # Logging metrics for plotting
-        history["train_loss"].append(train_loss)
+        history["train_loss"].append(train_loss/len(train_loader))
         history["val_loss"].append(val_metrics["loss"])
         history["train_bac"].append(train_metrics["balanced_accuracy"])
         history["val_bac"].append(val_metrics["balanced_accuracy"])
@@ -100,16 +122,30 @@ def train(model, train_loader, val_loader, fold, checkpoint):
 
     return history
 
-
 def validate(model, val_loader, criterion):
     """Main validation function
 
     returns:
         metrics: collected validation metrics
         """
+    # Initialize validation metrics using MetricCollection
+    val_metrics_tracker = MetricCollection({
+        'accuracy': MulticlassAccuracy(num_classes=args.num_classes),
+        'balanced_accuracy': MulticlassAccuracy(num_classes=args.num_classes, average='macro'),
+        'precision': MulticlassPrecision(num_classes=args.num_classes, average='macro'),
+        'recall': MulticlassRecall(num_classes=args.num_classes, average='macro'),
+        'f1_macro': MulticlassF1Score(num_classes=args.num_classes, average='macro'),
+        'cohen_kappa': MulticlassCohenKappa(num_classes=args.num_classes),
+        'confusion_matrix': MulticlassConfusionMatrix(num_classes=args.num_classes),
+    }).to(device)
+
+    # Separate metrics that need different inputs (probabilities vs predictions)
+    roc_auc = MulticlassAUROC(num_classes=args.num_classes, average='macro').to(device)
+    f1_per_class = MulticlassF1Score(num_classes=args.num_classes, average=None).to(device)
+    precision_per_class = MulticlassPrecision(num_classes=args.num_classes, average=None).to(device)
+    recall_per_class = MulticlassRecall(num_classes=args.num_classes, average=None).to(device)
 
     val_loss = 0
-    val_targets, val_preds, val_probs = [], [], []
     model.eval()
 
     with torch.no_grad():
@@ -121,24 +157,34 @@ def validate(model, val_loader, criterion):
             loss = criterion(outputs, targets)
             val_loss += loss.item()
 
-            val_targets.append(targets.detach().cpu().numpy())
-            val_preds.append(torch.argmax(outputs, dim=1).detach().cpu().numpy())
-            val_probs.append(torch.softmax(outputs, dim=1).detach().cpu().numpy())
+            # Update metrics
+            preds = outputs.argmax(dim=1)
+            probs = torch.softmax(outputs, dim=1)
 
-        val_targets = np.concatenate(val_targets, axis=0)
-        val_preds = np.concatenate(val_preds, axis=0)
-        val_probs = np.concatenate(val_probs, axis=0)
+            # Update all prediction-based metrics at once
+            val_metrics_tracker.update(preds, targets)
 
-        # TODO: Look deeper into metrics and collect only ones which are useful in this task
+            # Update probability-based and per-class metrics separately
+            roc_auc.update(probs, targets)
+            f1_per_class.update(preds, targets)
+            precision_per_class.update(preds, targets)
+            recall_per_class.update(preds, targets)
+
+        # Compute all metrics
+        val_metrics_computed = val_metrics_tracker.compute()
         metrics = {
             "loss": val_loss / len(val_loader),
-            "accuracy": accuracy_score(val_targets, val_preds),
-            "balanced_accuracy": balanced_accuracy_score(val_targets, val_preds),
-            "macro_f1": f1_score(val_targets, val_preds, average="macro"),
-            "per_label_f1": f1_score(val_targets, val_preds, average=None),
-            "roc_auc_macro": roc_auc_score(val_targets, val_probs, multi_class="ovr", average="macro"),
-            "per_label_roc_auc": roc_auc_score(val_targets, val_probs, multi_class="ovr", average=None),
-            "confusion_matrix": confusion_matrix(val_targets, val_preds),
+            "accuracy": val_metrics_computed['accuracy'].item(),
+            "balanced_accuracy": val_metrics_computed['balanced_accuracy'].item(),
+            "precision": val_metrics_computed['precision'].item(),
+            "recall": val_metrics_computed['recall'].item(),
+            "macro_f1": val_metrics_computed['f1_macro'].item(),
+            "cohen_kappa": val_metrics_computed['cohen_kappa'].item(),
+            "roc_auc_macro": roc_auc.compute().item(),
+            "per_label_f1": f1_per_class.compute().cpu().numpy(),
+            "per_label_precision": precision_per_class.compute().cpu().numpy(),
+            "per_label_recall": recall_per_class.compute().cpu().numpy(),
+            "confusion_matrix": val_metrics_computed['confusion_matrix'],
         }
 
         return metrics
