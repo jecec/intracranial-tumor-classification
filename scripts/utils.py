@@ -12,20 +12,33 @@ import pickle
 from args import get_args
 args = get_args()
 
+
 def print_metrics(train, val, epoch, fold):
     """Print metrics of training and validation"""
-    print(f"\n-- Fold: {fold+1}, Epoch: {epoch+1} --")
+    print(f"\n-- Fold: {fold + 1}, Epoch: {epoch + 1} --")
+
     print("Training metrics:")
-    print(f"Loss: {train['loss']:.4f}")
-    print(f"Balanced Accuracy: {train['balanced_accuracy']:.4f}")
+    print(f"  Loss: {train['loss']:.4f}")
+    print(f"  Accuracy: {train['accuracy']:.4f}")
+    print(f"  Balanced Accuracy: {train['balanced_accuracy']:.4f}")
+    print(f"  Precision: {train['precision']:.4f}")
+    print(f"  Recall: {train['recall']:.4f}")
+    print(f"  Cohen's Kappa: {train['cohen_kappa']:.4f}")
 
     print(f"\nValidation metrics:")
-    print(f"Loss: {val['loss']:.4f}")
-    print(f"Balanced Accuracy: {val['balanced_accuracy']:.4f}")
-    print(f"Macro F1 Score: {val['macro_f1']:.4f}")
-    print(f"F1 Precision per Label: {val['per_label_f1']}")
-    print(f"Roc-AUC-Macro: {val['roc_auc_macro']:.4f}")
-    print(f"Roc-AUC per Label: {val['per_label_roc_auc']}")
+    print(f"  Loss: {val['loss']:.4f}")
+    print(f"  Accuracy: {val['accuracy']:.4f}")
+    print(f"  Balanced Accuracy: {val['balanced_accuracy']:.4f}")
+    print(f"  Precision: {val['precision']:.4f}")
+    print(f"  Recall: {val['recall']:.4f}")
+    print(f"  Macro F1 Score: {val['macro_f1']:.4f}")
+    print(f"  Cohen's Kappa: {val['cohen_kappa']:.4f}")
+    print(f"  ROC-AUC Macro: {val['roc_auc_macro']:.4f}")
+
+    print(f"  Per-class F1: {[f'{x:.3f}' for x in val['per_label_f1'].tolist()]}")
+    print(f"  Per-class Precision: {[f'{x:.3f}' for x in val['per_label_precision'].tolist()]}")
+    print(f"  Per-class Recall: {[f'{x:.3f}' for x in val['per_label_recall'].tolist()]}")
+
     print("------------------------")
 
 def resize_pad(img, target_size=512):
@@ -103,7 +116,7 @@ def evaluation_metrics(aggregated, all_metrics):
 
     # Print mean and std of per class metrics by class
     labels = ["glioma", "meningioma", "no_tumor", "pituitary"]
-    headers = ["Class", "F1 (mean)", "F1 (std)", "ROC AUC (mean)", "ROC AUC (std)"]
+    headers = ["Class", "F1 (mean)", "F1 (std)", "Precision (mean)", "Precision (std)", "Recall (mean)", "Recall (std)"]
     metrics = aggregated["per_label"]
 
     per_label_data = []
@@ -112,8 +125,10 @@ def evaluation_metrics(aggregated, all_metrics):
             label,
             np.round(metrics["per_label_f1"]["mean"][i], 3),
             np.round(metrics["per_label_f1"]["std"][i], 3),
-            np.round(metrics["per_label_roc_auc"]["mean"][i], 3),
-            np.round(metrics["per_label_roc_auc"]["std"][i], 3)
+            np.round(metrics["per_label_precision"]["mean"][i], 3),
+            np.round(metrics["per_label_precision"]["std"][i], 3),
+            np.round(metrics["per_label_recall"]["mean"][i], 3),
+            np.round(metrics["per_label_recall"]["std"][i], 3)
         ])
     print("\n-- Aggregated evaluation metrics per label --")
     print(tabulate(per_label_data, headers=headers))
@@ -132,7 +147,7 @@ def aggregate_metrics(metrics):
     array_metric = {}
 
     # Compute mean and std for scalar metrics
-    scalar_metrics = ["loss", "accuracy", "balanced_accuracy", "macro_f1", "roc_auc_macro"]
+    scalar_metrics = ["loss", "accuracy", "balanced_accuracy", "precision", "recall", "macro_f1", "cohen_kappa", "roc_auc_macro"]
 
     for metric in scalar_metrics:
         values = [fold[metric] for fold in metrics]
@@ -143,7 +158,7 @@ def aggregate_metrics(metrics):
         }
 
     # Aggregate per-class metrics across folds
-    per_label_metrics = ["per_label_f1", "per_label_roc_auc"]
+    per_label_metrics = ["per_label_f1", "per_label_precision", "per_label_recall"]
 
     for metric in per_label_metrics:
         # Using numpy to aggregate through arrays of per-class metrics
@@ -158,6 +173,7 @@ def aggregate_metrics(metrics):
     aggregated["scalar"] = scalar_metric
     aggregated["per_label"] = array_metric
     return aggregated
+
 
 def save_metrics_pkl(metrics, fold):
     """Function for saving metrics into a json file
