@@ -213,10 +213,11 @@ def save_metrics_pkl(metrics, fold=None):
     """Function for saving metrics into a pickle file
 
     Output:
-        metrics_fold_X.pkl: Metrics by fold stored in pickle in the output folder
+        best_model_fold_x_metrics.pkl: Metrics by fold stored in pickle in the output folder
+        final_model_metrics.pkl: Metrics of the final trained model
     """
     if fold:
-        filepath = Path(args.metrics_dir, 'best_model_fold_{fold}_metrics.pkl')
+        filepath = Path(args.metrics_dir, f'best_model_fold_{fold}_metrics.pkl')
     else:
         filepath = Path(args.metrics_dir, 'final_model_metrics.pkl')
     with open(filepath, 'wb') as file:
