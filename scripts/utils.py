@@ -109,7 +109,7 @@ def plot_training_metrics(history, cfmx=None, fold=None):
     plt.ylabel("Loss", fontsize=12)
     plt.title("Loss over Epochs", fontsize=14)
     plt.grid(True, alpha=0.3)
-    if fold:
+    if fold is not None:
         plt.savefig(f"{args.visual_dir}/loss_fold_{fold + 1}.png", dpi=150, bbox_inches='tight')
     else:
         plt.savefig(f"{args.visual_dir}/loss_main.png", dpi=150, bbox_inches='tight')
@@ -126,7 +126,7 @@ def plot_training_metrics(history, cfmx=None, fold=None):
     plt.ylabel("Balanced Accuracy", fontsize=12)
     plt.title("Balanced Accuracy Score over Epochs", fontsize=14)
     plt.grid(True, alpha=0.3)
-    if fold:
+    if fold is not None:
         plt.savefig(f"{args.visual_dir}/BAC_fold_{fold + 1}.png", dpi=150, bbox_inches='tight')
     else:
         plt.savefig(f"{args.visual_dir}/BAC_main.png", dpi=150, bbox_inches='tight')
@@ -134,7 +134,7 @@ def plot_training_metrics(history, cfmx=None, fold=None):
     print(f"Balanced Accuracy plot saved to {args.visual_dir}")
 
     # 3. Confusion Matrix
-    if cfmx:
+    if cfmx is not None:
         plt.figure(figsize=(10, 8))
         sns.heatmap(cfmx, annot=True, fmt='d', cmap='Blues',
                     xticklabels=["glioma", "meningioma", "no_tumor", "pituitary"],
@@ -168,7 +168,10 @@ def evaluation_metrics(metrics):
     print("=" * 50 + "\n")
 
     plt.figure(figsize=(10, 8))
-    sns.heatmap(metrics["confusion_matrix"], annot=True, fmt='d', cmap='Blues')
+    sns.heatmap(metrics["confusion_matrix"], annot=True, fmt='d', cmap='Blues',
+                xticklabels = ["glioma", "meningioma", "no_tumor", "pituitary"],
+                yticklabels = ["glioma", "meningioma", "no_tumor", "pituitary"]
+    )
     plt.xlabel('Predicted', fontsize=12)
     plt.ylabel('True', fontsize=12)
     plt.title(f'Confusion Matrix', fontsize=14)
@@ -207,18 +210,24 @@ def aggregate_fold_metrics(fold_metrics):
         aggregated[f"{metric}_std"] = np.std(values, axis=0)
         aggregated[f"{metric}_values"] = values
 
+    # Saving aggregated metrics to pkl
+    save_metrics_pkl(aggregated, "aggregate_kfold")
+
     return aggregated
 
-def save_metrics_pkl(metrics, fold=None):
+def save_metrics_pkl(metrics, phase, fold=None):
     """Function for saving metrics into a pickle file
 
     Output:
         best_model_fold_x_metrics.pkl: Metrics by fold stored in pickle in the output folder
         final_model_metrics.pkl: Metrics of the final trained model
     """
-    if fold:
+    if phase == "validate_kfold":
         filepath = Path(args.metrics_dir, f'best_model_fold_{fold}_metrics.pkl')
-    else:
+    elif phase == "evaluate_final":
         filepath = Path(args.metrics_dir, 'final_model_metrics.pkl')
+    elif phase == "aggregate_kfold":
+        filepath = Path(args.metrics_dir, 'aggregated_kfold_metrics.pkl')
+    else: return
     with open(filepath, 'wb') as file:
         pickle.dump(metrics, file)
