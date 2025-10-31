@@ -27,6 +27,8 @@ Noteworthy arguments for controlling training and evaluation:
 These can be beneficial if you are troubleshooting specific phases or want to focus only on k-fold-cv training for example.
 
 ## Results
+Results were achieved using transfer learning on Resnet18.
+
 Using K-Fold Cross Validation the following aggregated metrics were collected: (mean ± std)
 ```
 Loss: 0.0386 ± 0.0106
