@@ -63,6 +63,10 @@ def print_aggregated_metrics(aggregated_metrics):
     print(f"F1 Score (macro): {aggregated_metrics['macro_f1_mean']:.4f} ± {aggregated_metrics['macro_f1_std']:.4f}")
     print(f"Cohen's Kappa: {aggregated_metrics['cohen_kappa_mean']:.4f} ± {aggregated_metrics['cohen_kappa_std']:.4f}")
     print(f"ROC-AUC (macro): {aggregated_metrics['roc_auc_macro_mean']:.4f} ± {aggregated_metrics['roc_auc_macro_std']:.4f}")
+
+    print(f"\nPer-class F1: {[f'{x:.3f}' for x in aggregated_metrics['per_label_f1_mean'].tolist()]} ± {[f'{x:.3f}' for x in aggregated_metrics['per_label_f1_std'].tolist()]}")
+    print(f"Per-class Precision: {[f'{x:.3f}' for x in aggregated_metrics['per_label_precision_mean'].tolist()]} ± {[f'{x:.3f}' for x in aggregated_metrics['per_label_precision_std'].tolist()]}")
+    print(f"Per-class Recall: {[f'{x:.3f}' for x in aggregated_metrics['per_label_recall_mean'].tolist()]} ± {[f'{x:.3f}' for x in aggregated_metrics['per_label_recall_std'].tolist()]}")
     print("=" * 50 + "\n")
 
 def resize_pad(img, target_size=512):
