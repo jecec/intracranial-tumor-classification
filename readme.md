@@ -13,7 +13,7 @@ If not, you can install torch and torchvision normally with:
 pip install torch torchvision
 ```
 Required project directory structure can be initialized by running the setup.py file.  
-After initializing the structure, dataset should be saved in the data folder.
+After initializing the structure, dataset should be manually saved in the data folder.
 
 ## Usage  
 Most of the changeable parameters and arguments reside in args.py. You should modify the parameters inside the file itself if you want to change anything.  
