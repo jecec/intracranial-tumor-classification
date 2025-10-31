@@ -103,8 +103,8 @@ def train_final(model, train_loader, checkpoint=None):
         history["train_loss"].append(train_metrics["loss"])
         history["train_bac"].append(train_metrics["balanced_accuracy"])
 
-        # Print metrics every 5 epochs
-        if (epoch + 1) % 5 == 0:
+        # Print metrics every {args.print_rate} epochs
+        if (epoch + 1) % args.print_rate == 0:
             print_metrics(train_metrics=train_metrics, epoch=epoch)
 
         # Save checkpoint every epoch
@@ -119,6 +119,6 @@ def train_final(model, train_loader, checkpoint=None):
 
     # Save final model
     torch.save(model.state_dict(), f"{args.model_dir}/final_model.pth")
-    save_metrics_pkl(train_metrics_computed)
+    save_metrics_pkl(train_metrics_computed, "evaluate_final")
 
     return history

@@ -117,8 +117,8 @@ def train_cv(model, train_loader, val_loader, fold, checkpoint=None, all_fold_me
         history["train_bac"].append(train_metrics["balanced_accuracy"])
         history["val_bac"].append(val_metrics["balanced_accuracy"])
 
-        # Print metrics every 5 epochs
-        if (epoch + 1) % 5 == 0:
+        # Print metrics every {args.print_rate} epochs
+        if (epoch + 1) % args.print_rate == 0:
             print_metrics(train_metrics=train_metrics, eval_metrics=val_metrics, epoch=epoch, fold=fold)
 
         # Save checkpoint every epoch
@@ -139,7 +139,7 @@ def train_cv(model, train_loader, val_loader, fold, checkpoint=None, all_fold_me
             best_bac = val_metrics["balanced_accuracy"]
             best_metrics = val_metrics
             torch.save(model.state_dict(), f"{args.model_dir}/best_model_fold_{fold + 1}.pth")
-            save_metrics_pkl(best_metrics, fold)
+            save_metrics_pkl(best_metrics, "validate_kfold", fold)
 
     return history, best_metrics
 
