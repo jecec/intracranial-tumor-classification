@@ -13,13 +13,30 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
+from pathlib import Path
 
+from scripts.utils import save_metrics_pkl
 from utils import print_metrics
+
 args = get_args()
 device = args.device
 
-def train(model, train_loader, val_loader, fold, checkpoint):
-    """Main training function"""
+
+def train_cv(model, train_loader, val_loader, fold, checkpoint=None, all_fold_metrics=None):
+    """Training function for K-fold cross-validation
+
+    Args:
+        model: Neural network model
+        train_loader: Training data loader
+        val_loader: Validation data loader
+        fold: Current fold number
+        checkpoint: Optional checkpoint to resume from (should be from the SAME fold)
+        all_fold_metrics: List of metrics from all completed folds (for checkpoint persistence)
+
+    Returns:
+        history: Dictionary containing training history for this fold
+        best_metrics: Best validation metrics achieved during training for this fold
+    """
     # TODO: Implement early stopping
     # TODO: Add more hyperparameters and training options here, such as batch normalization, learning rate scheduler etc.
 
@@ -32,24 +49,30 @@ def train(model, train_loader, val_loader, fold, checkpoint):
         'cohen_kappa': MulticlassCohenKappa(num_classes=args.num_classes),
     }).to(device)
 
+    # Initialize history and metrics
     history = {
         "train_loss": [],
         "val_loss": [],
         "train_bac": [],
         "val_bac": [],
     }
+    best_metrics = {}
     best_bac = 0.0
     starting_epoch = 0
+
+    # Initialize optimizer and criterion
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.CrossEntropyLoss()
 
-    # Load state_dict from checkpoint if desired
+    # Load state from checkpoint if resuming
     if checkpoint is not None:
         optimizer.load_state_dict(checkpoint["optimizer"])
-        starting_epoch = checkpoint["epoch"]
+        starting_epoch = checkpoint["epoch"] + 1
         history = checkpoint["history"]
+        best_metrics = checkpoint["best_metrics"]
+        best_bac = checkpoint.get("best_bac", 0.0)
 
-    for epoch in tqdm(range(starting_epoch, args.epochs)):
+    for epoch in tqdm(range(starting_epoch, args.epochs), desc=f"Training Fold {fold + 1}"):
         model.train()
         train_loss = 0
 
@@ -89,45 +112,49 @@ def train(model, train_loader, val_loader, fold, checkpoint):
         val_metrics = validate(model, val_loader, criterion)
 
         # Logging metrics for plotting
-        history["train_loss"].append(train_loss/len(train_loader))
+        history["train_loss"].append(train_metrics["loss"])
         history["val_loss"].append(val_metrics["loss"])
         history["train_bac"].append(train_metrics["balanced_accuracy"])
         history["val_bac"].append(val_metrics["balanced_accuracy"])
 
+        # Print metrics every 5 epochs
+        if (epoch + 1) % 5 == 0:
+            print_metrics(train_metrics=train_metrics, eval_metrics=val_metrics, epoch=epoch, fold=fold)
 
-        # Printing metrics every 5 epochs and saving checkpoint
-        if (epoch+1) % 5 == 0:
-            print_metrics(train_metrics, val_metrics, epoch, fold)
-            checkpoint = {
-                'epoch': epoch,
-                'fold': fold,
-                'state_dict': model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'history': history
-            }
-            torch.save(checkpoint, args.checkpoint_dir)
+        # Save checkpoint every epoch
+        checkpoint_data = {
+            'epoch': epoch,
+            'fold': fold,
+            'state_dict': model.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'history': history,
+            'best_metrics': best_metrics,
+            'best_bac': best_bac,
+            'all_fold_metrics': all_fold_metrics,  # Store ALL fold metrics
+        }
+        torch.save(checkpoint_data, Path(args.checkpoint_dir, "checkpoint_cv.pth"))
 
-        # Saving model based on balanced accuracy score
+        # Save best model based on balanced accuracy score
         if val_metrics["balanced_accuracy"] > best_bac:
             best_bac = val_metrics["balanced_accuracy"]
-            checkpoint = {
-                'epoch': epoch,
-                'fold': fold,
-                'state_dict': model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'train_metrics': train_metrics,
-                'val_metrics': val_metrics,
-            }
-            torch.save(checkpoint, f"{args.model_dir}/best_model_f_{fold+1}.pth")
+            best_metrics = val_metrics
+            torch.save(model.state_dict(), f"{args.model_dir}/best_model_fold_{fold + 1}.pth")
+            save_metrics_pkl(best_metrics, fold)
 
-    return history
+    return history, best_metrics
+
 
 def validate(model, val_loader, criterion):
-    """Main validation function
+    """Validation function for computing metrics on validation set
 
-    returns:
-        metrics: collected validation metrics
-        """
+    Args:
+        model: Neural network model
+        val_loader: Validation data loader
+        criterion: Loss function
+
+    Returns:
+        metrics: Dictionary of validation metrics
+    """
     # Initialize validation metrics using MetricCollection
     val_metrics_tracker = MetricCollection({
         'accuracy': MulticlassAccuracy(num_classes=args.num_classes),
@@ -170,21 +197,21 @@ def validate(model, val_loader, criterion):
             precision_per_class.update(preds, targets)
             recall_per_class.update(preds, targets)
 
-        # Compute all metrics
-        val_metrics_computed = val_metrics_tracker.compute()
-        metrics = {
-            "loss": val_loss / len(val_loader),
-            "accuracy": val_metrics_computed['accuracy'].item(),
-            "balanced_accuracy": val_metrics_computed['balanced_accuracy'].item(),
-            "precision": val_metrics_computed['precision'].item(),
-            "recall": val_metrics_computed['recall'].item(),
-            "macro_f1": val_metrics_computed['f1_macro'].item(),
-            "cohen_kappa": val_metrics_computed['cohen_kappa'].item(),
-            "roc_auc_macro": roc_auc.compute().item(),
-            "per_label_f1": f1_per_class.compute().cpu().numpy(),
-            "per_label_precision": precision_per_class.compute().cpu().numpy(),
-            "per_label_recall": recall_per_class.compute().cpu().numpy(),
-            "confusion_matrix": val_metrics_computed['confusion_matrix'],
-        }
+    # Compute all metrics
+    val_metrics_computed = val_metrics_tracker.compute()
+    metrics = {
+        "loss": val_loss / len(val_loader),
+        "accuracy": val_metrics_computed['accuracy'].item(),
+        "balanced_accuracy": val_metrics_computed['balanced_accuracy'].item(),
+        "precision": val_metrics_computed['precision'].item(),
+        "recall": val_metrics_computed['recall'].item(),
+        "macro_f1": val_metrics_computed['f1_macro'].item(),
+        "cohen_kappa": val_metrics_computed['cohen_kappa'].item(),
+        "roc_auc_macro": roc_auc.compute().item(),
+        "per_label_f1": f1_per_class.compute().cpu().numpy(),
+        "per_label_precision": precision_per_class.compute().cpu().numpy(),
+        "per_label_recall": recall_per_class.compute().cpu().numpy(),
+        "confusion_matrix": val_metrics_computed['confusion_matrix'].cpu().numpy(),
+    }
 
-        return metrics
+    return metrics
