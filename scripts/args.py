@@ -32,8 +32,7 @@ def get_args():
     misc_group.add_argument('-resume', type=bool, default=True, choices=[True, False])
     misc_group.add_argument('-num_classes', type=int, default=4)
     misc_group.add_argument('-print_rate', type=int, default=4)
-    misc_group.add_argument('-train_cv', type=bool, default=True)
-    misc_group.add_argument('-train_main', type=bool, default=True)
+    misc_group.add_argument('-train_cv', type=bool, default=False)
     misc_group.add_argument('-evaluate', type=bool, default=True)
 
     args = parser.parse_args()

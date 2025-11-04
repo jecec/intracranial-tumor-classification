@@ -180,7 +180,7 @@ def evaluation_metrics(metrics):
     plt.ylabel('True', fontsize=12)
     plt.title(f'Confusion Matrix', fontsize=14)
     plt.tight_layout()
-    plt.savefig(f"{args.visual_dir}/confusion_matrix_main.png", dpi=150)
+    plt.savefig(f"{args.visual_dir}/confusion_matrix_ensemble.png", dpi=150)
     plt.close()
 
 def aggregate_fold_metrics(fold_metrics):

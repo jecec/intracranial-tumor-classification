@@ -9,8 +9,7 @@ from model import PreTrainedModel
 from scripts.utils import evaluation_metrics, aggregate_fold_metrics, print_aggregated_metrics
 from utils import plot_training_metrics
 from train_cv import train_cv
-from train_final import train_final
-from evaluate import evaluate
+from evaluate import evaluate_ensemble
 
 
 def main():
@@ -113,53 +112,6 @@ def main():
         aggregated_metrics = aggregate_fold_metrics(fold_metrics)
         print_aggregated_metrics(aggregated_metrics)
 
-    ### SINGLE MODEL TRAINING ###
-    if args.train_main:
-        checkpoint = None
-        resume_training = False
-        if args.resume:
-            try:
-                checkpoint = torch.load(Path(args.checkpoint_dir, "checkpoint_main.pth"), weights_only=False,
-                                        map_location="cpu")
-                print(f"\nLoaded checkpoint {Path(args.checkpoint_dir, 'checkpoint_main.pth')}")
-                print(f"Resuming training from Epoch {checkpoint['epoch'] + 1}")
-                resume_training = True
-            except FileNotFoundError:
-                print("\nCheckpoint not found, training from scratch")
-
-        print("\n" + "=" * 60)
-        print("STARTING SINGLE MODEL TRAINING")
-        print("=" * 60)
-
-        # Load full training set
-        train_set = pd.read_csv(Path(args.csv_dir, 'train_metadata.csv'))
-        train_dataset = MRI_dataset(train_set, transform=transforms('train'))
-
-        # Create data loader
-        train_loader = DataLoader(
-            train_dataset,
-            batch_size=args.batch_size,
-            shuffle=True,
-            num_workers=args.num_workers,
-            pin_memory=torch.cuda.is_available(),
-            prefetch_factor=args.pre_fetch,
-            persistent_workers=True
-        )
-
-        # Initialize model with checkpoint weights or pretrained weights
-        if resume_training:
-            model = PreTrainedModel(args.backbone, pretrained=False)
-            model.load_state_dict(checkpoint['state_dict'])
-            model = model.to(device)
-        else:
-            model = PreTrainedModel(args.backbone, pretrained=True).to(device)
-
-        # Train the model
-        history = train_final(model=model, train_loader=train_loader, checkpoint=checkpoint)
-
-        # Visualize metrics
-        plot_training_metrics(history)
-
     ### MODEL EVALUATION ###
     if args.evaluate:
         print("\n" + "=" * 60)
@@ -176,9 +128,15 @@ def main():
             num_workers=args.num_workers,
             pin_memory=torch.cuda.is_available()
         )
-
-        test_metrics = evaluate(test_loader, Path(args.model_dir, 'final_model.pth'))
-        evaluation_metrics(test_metrics)
+        model_paths = [
+            Path(Path(args.model_dir, "best_model_fold_1.pth")),
+            Path(Path(args.model_dir, "best_model_fold_2.pth")),
+            Path(Path(args.model_dir, "best_model_fold_3.pth")),
+            Path(Path(args.model_dir, "best_model_fold_4.pth")),
+            Path(Path(args.model_dir, "best_model_fold_5.pth")),
+        ]
+        metrics = evaluate_ensemble(test_loader, model_paths)
+        evaluation_metrics(metrics)
 
 if __name__ == '__main__':
     main()
