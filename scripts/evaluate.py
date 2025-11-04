@@ -19,30 +19,48 @@ args = get_args()
 device = args.device
 
 
-def evaluate(test_loader, model_path):
-    """Evaluate a single trained model on the test set
+def load_fold_models(model_paths):
+    """Load all k-fold models
+
+    Args:
+        model_paths: List of paths to trained model weights
+
+    Returns:
+        models: List of loaded models in eval mode
+    """
+    models = []
+    for model_path in model_paths:
+        if not model_path.exists():
+            raise FileNotFoundError(f"Model file not found: {model_path}")
+
+        model = PreTrainedModel(args.backbone, pretrained=False).to(device)
+        state_dict = torch.load(model_path, map_location=device, weights_only=True)
+        model.load_state_dict(state_dict)
+        model.eval()
+        models.append(model)
+        print(f"Loaded model: {model_path}")
+
+    return models
+
+
+def evaluate_ensemble(test_loader, model_paths):
+    """Evaluate ensemble of k-fold models on test set
 
     Args:
         test_loader: DataLoader for test set
-        model_path: Path to the trained model weights.
+        model_paths: List of paths to trained model weights (one per fold)
 
     Returns:
         metrics: Dictionary containing all evaluation metrics
     """
     criterion = nn.CrossEntropyLoss()
 
-    if not model_path.exists():
-        raise FileNotFoundError(f"Model file not found: {model_path}")
+    print(f"\nEvaluating ensemble of {len(model_paths)} models")
 
-    print(f"\nEvaluating model: {model_path}")
+    # Load all models
+    models = load_fold_models(model_paths)
 
-    # Load model
-    model = PreTrainedModel(args.backbone, pretrained=False).to(device)
-    state_dict = torch.load(model_path, map_location=device, weights_only=True)
-    model.load_state_dict(state_dict)
-    model.eval()
-
-    # Initialize metrics using MetricCollection
+    # Initialize metrics
     test_metrics_tracker = MetricCollection({
         'accuracy': MulticlassAccuracy(num_classes=args.num_classes),
         'balanced_accuracy': MulticlassAccuracy(num_classes=args.num_classes, average='macro'),
@@ -53,7 +71,6 @@ def evaluate(test_loader, model_path):
         'confusion_matrix': MulticlassConfusionMatrix(num_classes=args.num_classes),
     }).to(device)
 
-    # Separate metrics that need different inputs (probabilities vs predictions)
     roc_auc = MulticlassAUROC(num_classes=args.num_classes, average='macro').to(device)
     f1_per_class = MulticlassF1Score(num_classes=args.num_classes, average=None).to(device)
     precision_per_class = MulticlassPrecision(num_classes=args.num_classes, average=None).to(device)
@@ -62,26 +79,38 @@ def evaluate(test_loader, model_path):
     test_loss = 0
 
     with torch.no_grad():
-        for batch in tqdm(test_loader, desc="Evaluating"):
+        for batch in tqdm(test_loader, desc="Evaluating Ensemble"):
             inputs = batch['img'].to(device)
             targets = batch['label'].to(device)
-            outputs = model(inputs)
 
-            loss = criterion(outputs, targets)
+            # Collect predictions from all models
+            all_logits = []
+            all_probs = []
+
+            for model in models:
+                outputs = model(inputs)
+                all_logits.append(outputs)
+                all_probs.append(torch.softmax(outputs, dim=1))
+
+            # Stack predictions
+            all_logits = torch.stack(all_logits)
+            all_probs = torch.stack(all_probs)
+
+            # Ensemble prediction: average probabilities (soft voting)
+            ensemble_probs = all_probs.mean(dim=0)
+            ensemble_preds = ensemble_probs.argmax(dim=1)
+
+            # Calculate loss using ensemble
+            ensemble_logits = all_logits.mean(dim=0)
+            loss = criterion(ensemble_logits, targets)
             test_loss += loss.item()
 
-            # Update metrics
-            preds = outputs.argmax(dim=1)
-            probs = torch.softmax(outputs, dim=1)
-
-            # Update all prediction-based metrics at once
-            test_metrics_tracker.update(preds, targets)
-
-            # Update probability-based and per-class metrics separately
-            roc_auc.update(probs, targets)
-            f1_per_class.update(preds, targets)
-            precision_per_class.update(preds, targets)
-            recall_per_class.update(preds, targets)
+            # Update metrics with ensemble predictions
+            test_metrics_tracker.update(ensemble_preds, targets)
+            roc_auc.update(ensemble_probs, targets)
+            f1_per_class.update(ensemble_preds, targets)
+            precision_per_class.update(ensemble_preds, targets)
+            recall_per_class.update(ensemble_preds, targets)
 
     # Compute all metrics
     test_metrics_computed = test_metrics_tracker.compute()
@@ -98,6 +127,7 @@ def evaluate(test_loader, model_path):
         "per_label_precision": precision_per_class.compute().cpu().numpy(),
         "per_label_recall": recall_per_class.compute().cpu().numpy(),
         "confusion_matrix": test_metrics_computed['confusion_matrix'].cpu().numpy(),
+        "num_models": len(models),
     }
 
     return metrics
