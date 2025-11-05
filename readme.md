@@ -23,13 +23,13 @@ Noteworthy arguments for controlling training and evaluation:
 -train: boolean for toggling training of k-fold models
 -evaluate: boolean for toggling model evaluation
 ```
-These can be beneficial if you are troubleshooting specific phases or want to focus only on k-fold-cv training for example.
+These can be beneficial if your training loop terminates suddenly, or you want to only train or evaluate
 
 ## Results
 Results were achieved using transfer learning on Resnet34.
 
 ### Validation
-Using K-Fold Cross Validation the following aggregated metrics were collected: (mean ± std)
+Using k-fold cross validation the following aggregated metrics were collected: (mean ± std)
 ```
 Loss: 0.0386 ± 0.0106
 Accuracy: 0.9892 ± 0.0016
