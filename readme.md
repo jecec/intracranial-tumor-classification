@@ -1,5 +1,5 @@
-## Intracranial Tumor Classification with the BRISC 2025 dataset
-Deep learning project focused in utilizing transfer learning for tumor classification from MRI data.
+# Intracranial Tumor Classification with the BRISC 2025 dataset
+Deep learning project focused in utilizing transfer learning of ResNet for tumor classification from MRI data. The final model classifies 3 distinct types of tumors (Meningioma, Pituitary, Glioma) or the absence of one.
 
 ## Installation
 Required libraries can be installed from the requirements.txt using command:
@@ -20,15 +20,15 @@ Most of the changeable parameters and arguments reside in args.py. You should mo
 Noteworthy arguments for controlling training and evaluation:
 ```
 -resume: boolean for resuming training from checkpoint
--train_cv: boolean for controlling if k-fold cross validation should be used and trained
--train_main: boolean for controlling if the final singular model should be trained
--evaluate: boolean for controlling if the final singular model should be evaluated
+-train: boolean for toggling training of k-fold models
+-evaluate: boolean for toggling model evaluation
 ```
 These can be beneficial if you are troubleshooting specific phases or want to focus only on k-fold-cv training for example.
 
 ## Results
-Results were achieved using transfer learning on Resnet18.
+Results were achieved using transfer learning on Resnet34.
 
+### Validation
 Using K-Fold Cross Validation the following aggregated metrics were collected: (mean ± std)
 ```
 Loss: 0.0386 ± 0.0106
@@ -40,14 +40,31 @@ F1 Score (macro): 0.9894 ± 0.0014
 Cohen's Kappa: 0.9858 ± 0.0023
 ROC-AUC (macro): 0.9995 ± 0.0005
 
-# Classes in order: [glioma, meningioma, no_tumor, pituitary]
-Per-class F1: ['0.986', '0.985', '0.994', '0.993'] ± ['0.002', '0.005', '0.004', '0.005']
-Per-class Precision: ['0.991', '0.979', '0.995', '0.993'] ± ['0.006', '0.009', '0.007', '0.006']
-Per-class Recall: ['0.981', '0.990', '0.993', '0.992'] ± ['0.008', '0.005', '0.009', '0.004']
+# Per-class metrics (classes in order: [glioma, meningioma, no_tumor, pituitary]) #
+  F1 Scores: ['0.986', '0.985', '0.994', '0.993'] ± ['0.002', '0.005', '0.004', '0.005']
+  Precision Scores: ['0.991', '0.979', '0.995', '0.993'] ± ['0.006', '0.009', '0.007', '0.006']
+  Recall Scores: ['0.981', '0.990', '0.993', '0.992'] ± ['0.008', '0.005', '0.009', '0.004']
 ```
-Trained a singular model on the entire training set after achieving satisfactory results with K-Fold Cross Validation.  
-Confusion Matrix of final model evaluation on the held out test set:
-![Confusion Matrix of Final Model](results/confusion_matrix_main.png)
+### Evaluation
+Soft voting of k-fold ensemble was utilized for evaluation on the held-out test set. 
+Metrics of ensemble evaluation:
+```
+Loss: 0.0232
+Accuracy: 0.9934
+Balanced Accuracy: 0.9934
+Precision (macro): 0.9943
+Recall (macro): 0.9934
+F1 Score (macro): 0.9938
+Cohen's Kappa: 0.9904
+ROC-AUC (macro): 0.9998
+
+# Per-class metrics (classes in order: [glioma, meningioma, no_tumor, pituitary]) #
+  F1 Scores: ['0.990', '0.989', '1.000', '0.997']
+  Precision: ['1.000', '0.981', '1.000', '0.997']
+  Recall: ['0.980', '0.997', '1.000', '0.997']
+```
+#### Confusion Matrix of ensemble evaluation:
+![Confusion Matrix of Ensemble Predictions](results/confusion_matrix_ensemble.png)
 
 ## Dataset Attribution
 This project uses the **BRISC 2025** dataset (https://www.kaggle.com/datasets/briscdataset/brisc2025), 
