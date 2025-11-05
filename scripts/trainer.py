@@ -22,7 +22,7 @@ args = get_args()
 device = args.device
 
 
-def train_cv(model, train_loader, val_loader, fold, checkpoint=None, all_fold_metrics=None):
+def train(model, train_loader, val_loader, fold, checkpoint=None, all_fold_metrics=None):
     """Training function for K-fold cross-validation
 
     Args:

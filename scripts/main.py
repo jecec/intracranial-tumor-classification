@@ -8,7 +8,7 @@ from args import get_args
 from model import PreTrainedModel
 from scripts.utils import evaluation_metrics, aggregate_fold_metrics, print_aggregated_metrics
 from utils import plot_training_metrics
-from train_cv import train_cv
+from trainer import train
 from evaluate import evaluate_ensemble
 
 
@@ -23,11 +23,11 @@ def main():
     prepare_dataset(args.data)
 
     # Only create K-fold splits if using cross-validation
-    if args.train_cv:
+    if args.train:
         k_fold_cv(f'{args.csv_dir}/train_metadata.csv')
 
     ### K-FOLD CROSS-VALIDATION TRAINING ###
-    if args.train_cv:
+    if args.train:
         fold_metrics = []
         starting_fold = 0
         resume_training = False
@@ -89,7 +89,7 @@ def main():
 
             # 5. Train the model
             # Pass all_fold_metrics to ensure checkpoint saves complete history
-            history, val_metrics = train_cv(
+            history, val_metrics = train(
                 model=model,
                 train_loader=train_loader,
                 val_loader=val_loader,

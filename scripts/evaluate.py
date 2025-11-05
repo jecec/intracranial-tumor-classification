@@ -53,6 +53,7 @@ def evaluate_ensemble(test_loader, model_paths):
     Returns:
         metrics: Dictionary containing all evaluation metrics
     """
+    # TODO: Add std tracking for predictions and flag samples with high variance
     criterion = nn.CrossEntropyLoss()
 
     print(f"\nEvaluating ensemble of {len(model_paths)} models")
