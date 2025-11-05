@@ -19,11 +19,13 @@ def print_metrics(train_metrics=None, eval_metrics=None,  epoch=None, fold=None)
         epoch (int): epoch number
         fold (int): fold number
     """
+    print("\n", "-" * 60)
+
     if train_metrics:
         if fold is not None:
-            print(f"\n-- Fold: {fold + 1}, Epoch: {epoch + 1} --")
+            print(f"-- Fold: {fold + 1}, Epoch: {epoch + 1} --")
         elif epoch is not None:
-            print(f"\n-- Epoch: {epoch + 1} --")
+            print(f"-- Epoch: {epoch + 1} --")
 
         print("Training metrics:")
         print(f"  Loss: {train_metrics['loss']:.4f}")
@@ -33,7 +35,7 @@ def print_metrics(train_metrics=None, eval_metrics=None,  epoch=None, fold=None)
         print(f"  Recall: {train_metrics['recall']:.4f}")
         print(f"  Cohen's Kappa: {train_metrics['cohen_kappa']:.4f}")
     if eval_metrics:
-        print(f"\nEvaluation metrics:")
+        print(f"Evaluation metrics:")
         print(f"  Loss: {eval_metrics['loss']:.4f}")
         print(f"  Accuracy: {eval_metrics['accuracy']:.4f}")
         print(f"  Balanced Accuracy: {eval_metrics['balanced_accuracy']:.4f}")
@@ -48,50 +50,6 @@ def print_metrics(train_metrics=None, eval_metrics=None,  epoch=None, fold=None)
         print(f"  Per-class Recall: {[f'{x:.3f}' for x in eval_metrics['per_label_recall'].tolist()]}")
 
     print("-"*60)
-
-def print_aggregated_metrics(aggregated_metrics):
-    """Function for printing validation metrics aggregated over folds"""
-    # Print aggregated results
-    print(f"\n{'=' * 50}")
-    print("AGGREGATED TEST SET RESULTS (ACROSS ALL FOLDS)")
-    print(f"{'=' * 50}")
-    print(f"Loss: {aggregated_metrics['loss_mean']:.4f} ± {aggregated_metrics['loss_std']:.4f}")
-    print(f"Accuracy: {aggregated_metrics['accuracy_mean']:.4f} ± {aggregated_metrics['accuracy_std']:.4f}")
-    print(f"Balanced Accuracy: {aggregated_metrics['balanced_accuracy_mean']:.4f} ± {aggregated_metrics['balanced_accuracy_std']:.4f}")
-    print(f"Precision (macro): {aggregated_metrics['precision_mean']:.4f} ± {aggregated_metrics['precision_std']:.4f}")
-    print(f"Recall (macro): {aggregated_metrics['recall_mean']:.4f} ± {aggregated_metrics['recall_std']:.4f}")
-    print(f"F1 Score (macro): {aggregated_metrics['macro_f1_mean']:.4f} ± {aggregated_metrics['macro_f1_std']:.4f}")
-    print(f"Cohen's Kappa: {aggregated_metrics['cohen_kappa_mean']:.4f} ± {aggregated_metrics['cohen_kappa_std']:.4f}")
-    print(f"ROC-AUC (macro): {aggregated_metrics['roc_auc_macro_mean']:.4f} ± {aggregated_metrics['roc_auc_macro_std']:.4f}")
-
-    print(f"\nPer-class F1: {[f'{x:.3f}' for x in aggregated_metrics['per_label_f1_mean'].tolist()]} ± {[f'{x:.3f}' for x in aggregated_metrics['per_label_f1_std'].tolist()]}")
-    print(f"Per-class Precision: {[f'{x:.3f}' for x in aggregated_metrics['per_label_precision_mean'].tolist()]} ± {[f'{x:.3f}' for x in aggregated_metrics['per_label_precision_std'].tolist()]}")
-    print(f"Per-class Recall: {[f'{x:.3f}' for x in aggregated_metrics['per_label_recall_mean'].tolist()]} ± {[f'{x:.3f}' for x in aggregated_metrics['per_label_recall_std'].tolist()]}")
-    print("=" * 50 + "\n")
-
-def resize_pad(img, target_size=512):
-    """Function for resizing and adding padding to images that are not in the standard 512x512 shape"""
-    # Original Dimensions
-    h, w = img.shape
-    # Scale of resize
-    scale = target_size / max(h, w)
-    new_h, new_w = int(h * scale), int(w * scale)
-    img_resized = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
-
-    # Padding for target size
-    pad_top = (target_size - new_h) // 2
-    pad_bottom = target_size - new_h - pad_top
-    pad_left = (target_size - new_w) // 2
-    pad_right = target_size - new_w - pad_left
-
-    img_padded = np.pad(img_resized, ((pad_top, pad_bottom), (pad_left, pad_right)), mode='constant', constant_values=0)
-    return img_padded
-
-def show_img(img):
-    """Helper function for visualizing images"""
-    cv2.imshow("Image", img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
 
 def plot_training_metrics(history, cfmx=None, fold=None):
     """Function for saving plots of training and validation metrics
@@ -151,38 +109,6 @@ def plot_training_metrics(history, cfmx=None, fold=None):
         plt.close()
         print(f"Confusion matrix saved to {args.visual_dir}\n")
 
-def evaluation_metrics(metrics):
-    """Function for printing evaluation metrics and saving confusion matrix"""
-    # Print evaluation results
-    print("\n" + "=" * 50)
-    print("TEST SET EVALUATION RESULTS")
-    print("=" * 50)
-    print(f"Loss: {metrics['loss']:.4f}")
-    print(f"Accuracy: {metrics['accuracy']:.4f}")
-    print(f"Balanced Accuracy: {metrics['balanced_accuracy']:.4f}")
-    print(f"Precision (macro): {metrics['precision']:.4f}")
-    print(f"Recall (macro): {metrics['recall']:.4f}")
-    print(f"F1 Score (macro): {metrics['macro_f1']:.4f}")
-    print(f"Cohen's Kappa: {metrics['cohen_kappa']:.4f}")
-    print(f"ROC-AUC (macro): {metrics['roc_auc_macro']:.4f}")
-    print("\nPer-class metrics:")
-    print(f"  F1 Scores: {[f'{x:.3f}' for x in metrics['per_label_f1'].tolist()]}")
-    print(f"  Precision: {[f'{x:.3f}' for x in metrics['per_label_precision'].tolist()]}")
-    print(f"  Recall: {[f'{x:.3f}' for x in metrics['per_label_recall'].tolist()]}")
-    print("=" * 50 + "\n")
-
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(metrics["confusion_matrix"], annot=True, fmt='d', cmap='Blues',
-                xticklabels = ["glioma", "meningioma", "no_tumor", "pituitary"],
-                yticklabels = ["glioma", "meningioma", "no_tumor", "pituitary"]
-    )
-    plt.xlabel('Predicted', fontsize=12)
-    plt.ylabel('True', fontsize=12)
-    plt.title(f'Confusion Matrix', fontsize=14)
-    plt.tight_layout()
-    plt.savefig(f"{args.visual_dir}/confusion_matrix_ensemble.png", dpi=150)
-    plt.close()
-
 def aggregate_fold_metrics(fold_metrics):
     """Function for aggregating metrics across folds
 
@@ -218,6 +144,44 @@ def aggregate_fold_metrics(fold_metrics):
     save_metrics_pkl(aggregated, "aggregate_kfold")
 
     return aggregated
+
+def print_aggregated_metrics(aggregated_metrics):
+    """Function for printing validation metrics aggregated over folds"""
+    # Print aggregated results
+    print(f"\n{'=' * 50}")
+    print("AGGREGATED TEST SET RESULTS (ACROSS ALL FOLDS)")
+    print(f"{'=' * 50}")
+    print(f"Loss: {aggregated_metrics['loss_mean']:.4f} ± {aggregated_metrics['loss_std']:.4f}")
+    print(f"Accuracy: {aggregated_metrics['accuracy_mean']:.4f} ± {aggregated_metrics['accuracy_std']:.4f}")
+    print(f"Balanced Accuracy: {aggregated_metrics['balanced_accuracy_mean']:.4f} ± {aggregated_metrics['balanced_accuracy_std']:.4f}")
+    print(f"Precision (macro): {aggregated_metrics['precision_mean']:.4f} ± {aggregated_metrics['precision_std']:.4f}")
+    print(f"Recall (macro): {aggregated_metrics['recall_mean']:.4f} ± {aggregated_metrics['recall_std']:.4f}")
+    print(f"F1 Score (macro): {aggregated_metrics['macro_f1_mean']:.4f} ± {aggregated_metrics['macro_f1_std']:.4f}")
+    print(f"Cohen's Kappa: {aggregated_metrics['cohen_kappa_mean']:.4f} ± {aggregated_metrics['cohen_kappa_std']:.4f}")
+    print(f"ROC-AUC (macro): {aggregated_metrics['roc_auc_macro_mean']:.4f} ± {aggregated_metrics['roc_auc_macro_std']:.4f}")
+
+    print(f"\nPer-class F1: {[f'{x:.3f}' for x in aggregated_metrics['per_label_f1_mean'].tolist()]} ± {[f'{x:.3f}' for x in aggregated_metrics['per_label_f1_std'].tolist()]}")
+    print(f"Per-class Precision: {[f'{x:.3f}' for x in aggregated_metrics['per_label_precision_mean'].tolist()]} ± {[f'{x:.3f}' for x in aggregated_metrics['per_label_precision_std'].tolist()]}")
+    print(f"Per-class Recall: {[f'{x:.3f}' for x in aggregated_metrics['per_label_recall_mean'].tolist()]} ± {[f'{x:.3f}' for x in aggregated_metrics['per_label_recall_std'].tolist()]}")
+    print("-" * 50 + "\n")
+
+def resize_pad(img, target_size=512):
+    """Function for resizing and adding padding to images that are not in the standard 512x512 shape"""
+    # Original Dimensions
+    h, w = img.shape
+    # Scale of resize
+    scale = target_size / max(h, w)
+    new_h, new_w = int(h * scale), int(w * scale)
+    img_resized = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+    # Padding for target size
+    pad_top = (target_size - new_h) // 2
+    pad_bottom = target_size - new_h - pad_top
+    pad_left = (target_size - new_w) // 2
+    pad_right = target_size - new_w - pad_left
+
+    img_padded = np.pad(img_resized, ((pad_top, pad_bottom), (pad_left, pad_right)), mode='constant', constant_values=0)
+    return img_padded
 
 def save_metrics_pkl(metrics, phase, fold=None):
     """Function for saving metrics into a pickle file

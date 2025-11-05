@@ -6,7 +6,7 @@ from pathlib import Path
 from dataset import prepare_dataset, k_fold_cv, MRI_dataset, transforms
 from args import get_args
 from model import PreTrainedModel
-from scripts.utils import evaluation_metrics, aggregate_fold_metrics, print_aggregated_metrics
+from scripts.utils import print_metrics, aggregate_fold_metrics, print_aggregated_metrics
 from utils import plot_training_metrics
 from trainer import train
 from evaluate import evaluate_ensemble
@@ -136,7 +136,7 @@ def main():
             Path(Path(args.model_dir, "best_model_fold_5.pth")),
         ]
         metrics = evaluate_ensemble(test_loader, model_paths)
-        evaluation_metrics(metrics)
+        print_metrics(eval_metrics=metrics)
 
 if __name__ == '__main__':
     main()

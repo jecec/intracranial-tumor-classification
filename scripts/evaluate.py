@@ -11,6 +11,8 @@ from torchmetrics.classification import (
     MulticlassCohenKappa
 )
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from args import get_args
 from model import PreTrainedModel
@@ -130,5 +132,17 @@ def evaluate_ensemble(test_loader, model_paths):
         "confusion_matrix": test_metrics_computed['confusion_matrix'].cpu().numpy(),
         "num_models": len(models),
     }
+
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(metrics["confusion_matrix"], annot=True, fmt='d', cmap='Blues',
+                xticklabels = ["glioma", "meningioma", "no_tumor", "pituitary"],
+                yticklabels = ["glioma", "meningioma", "no_tumor", "pituitary"]
+    )
+    plt.xlabel('Predicted', fontsize=12)
+    plt.ylabel('True', fontsize=12)
+    plt.title(f'Confusion Matrix', fontsize=14)
+    plt.tight_layout()
+    plt.savefig(f"{args.visual_dir}/confusion_matrix_ensemble.png", dpi=150)
+    plt.close()
 
     return metrics
