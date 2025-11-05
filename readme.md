@@ -6,12 +6,10 @@ Required libraries can be installed from the requirements.txt using command:
 ```
 pip install -r requirements.txt
 ```
-**NOTE: THIS DOES NOT INSTALL TORCH OR TORCHVISION**.  
-You will need to separately install torch using these instructions if you desire to use CUDA: https://pytorch.org/get-started/locally/  
-If not, you can install torch and torchvision normally with:
-```
-pip install torch torchvision
-```
+**NOTE: TO USE CUDA, DO THE FOLLOWING**.  
+Install CUDA Toolkit from: https://developer.nvidia.com/cuda-downloads  
+You will need to separately install torch using these instructions: https://pytorch.org/get-started/locally/  
+
 Required project directory structure can be initialized by running the setup.py file.  
 After initializing the structure, dataset should be manually saved in the data folder.
 
