@@ -66,7 +66,6 @@ def evaluate_ensemble(test_loader, model_paths):
     # Initialize metrics
     test_metrics_tracker = MetricCollection({
         'accuracy': MulticlassAccuracy(num_classes=args.num_classes),
-        'balanced_accuracy': MulticlassAccuracy(num_classes=args.num_classes, average='macro'),
         'precision': MulticlassPrecision(num_classes=args.num_classes, average='macro'),
         'recall': MulticlassRecall(num_classes=args.num_classes, average='macro'),
         'f1_macro': MulticlassF1Score(num_classes=args.num_classes, average='macro'),
@@ -120,7 +119,6 @@ def evaluate_ensemble(test_loader, model_paths):
     metrics = {
         "loss": test_loss / len(test_loader),
         "accuracy": test_metrics_computed['accuracy'].item(),
-        "balanced_accuracy": test_metrics_computed['balanced_accuracy'].item(),
         "precision": test_metrics_computed['precision'].item(),
         "recall": test_metrics_computed['recall'].item(),
         "macro_f1": test_metrics_computed['f1_macro'].item(),

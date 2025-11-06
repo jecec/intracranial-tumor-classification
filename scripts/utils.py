@@ -30,7 +30,6 @@ def print_metrics(train_metrics=None, eval_metrics=None,  epoch=None, fold=None)
         print("Training metrics:")
         print(f"  Loss: {train_metrics['loss']:.4f}")
         print(f"  Accuracy: {train_metrics['accuracy']:.4f}")
-        print(f"  Balanced Accuracy: {train_metrics['balanced_accuracy']:.4f}")
         print(f"  Precision: {train_metrics['precision']:.4f}")
         print(f"  Recall: {train_metrics['recall']:.4f}")
         print(f"  Cohen's Kappa: {train_metrics['cohen_kappa']:.4f}")
@@ -38,7 +37,6 @@ def print_metrics(train_metrics=None, eval_metrics=None,  epoch=None, fold=None)
         print(f"Evaluation metrics:")
         print(f"  Loss: {eval_metrics['loss']:.4f}")
         print(f"  Accuracy: {eval_metrics['accuracy']:.4f}")
-        print(f"  Balanced Accuracy: {eval_metrics['balanced_accuracy']:.4f}")
         print(f"  Precision: {eval_metrics['precision']:.4f}")
         print(f"  Recall: {eval_metrics['recall']:.4f}")
         print(f"  Macro F1 Score: {eval_metrics['macro_f1']:.4f}")
@@ -79,19 +77,20 @@ def plot_training_metrics(history, cfmx=None, fold=None):
     print(f"\nLoss plot saved to {args.visual_dir}")
 
     # 2. Balanced Accuracy plot
+    # TODO: Fix inconsistent naming, even though the functionality is the same
     plt.figure(figsize=(10, 6))
-    plt.plot(history["train_bac"], label="Training BAC", linewidth=2)
-    if "val_bac" in history:
-        plt.plot(history["val_bac"], label="Validation BAC", linewidth=2)
+    plt.plot(history["train_recall"], label="Training Balanced Accuracy", linewidth=2)
+    if "val_recall" in history:
+        plt.plot(history["val_recall"], label="Validation Balanced Accuracy", linewidth=2)
     plt.legend(fontsize=12)
     plt.xlabel("Epoch", fontsize=12)
     plt.ylabel("Balanced Accuracy", fontsize=12)
     plt.title("Balanced Accuracy Score over Epochs", fontsize=14)
     plt.grid(True, alpha=0.3)
     if fold is not None:
-        plt.savefig(f"{args.visual_dir}/BAC_fold_{fold + 1}.png", dpi=150, bbox_inches='tight')
+        plt.savefig(Path(args.visual_dir, f"balanced_accuracy_fold_{fold + 1}.png"), dpi=150, bbox_inches='tight')
     else:
-        plt.savefig(f"{args.visual_dir}/BAC_main.png", dpi=150, bbox_inches='tight')
+        plt.savefig(Path(args.visual_dir,"balanced_accuracy_main.png"), dpi=150, bbox_inches='tight')
     plt.close()
     print(f"Balanced Accuracy plot saved to {args.visual_dir}")
 
@@ -105,7 +104,7 @@ def plot_training_metrics(history, cfmx=None, fold=None):
         plt.ylabel('True', fontsize=12)
         plt.title(f'Confusion Matrix - Fold {fold+1}', fontsize=14)
         plt.tight_layout()
-        plt.savefig(f"{args.visual_dir}/confusion_matrix_fold_{fold+1}.png", dpi=150)
+        plt.savefig(Path(args.visual_dir, f"confusion_matrix_fold_{fold+1}.png"), dpi=150)
         plt.close()
         print(f"Confusion matrix saved to {args.visual_dir}\n")
 
@@ -121,7 +120,7 @@ def aggregate_fold_metrics(fold_metrics):
     aggregated = {}
 
     # Compute mean and std for scalar metrics
-    scalar_metrics = ["loss", "accuracy", "balanced_accuracy", "precision",
+    scalar_metrics = ["loss", "accuracy", "precision",
                       "recall", "macro_f1", "cohen_kappa", "roc_auc_macro"]
 
     for metric in scalar_metrics:
@@ -153,7 +152,6 @@ def print_aggregated_metrics(aggregated_metrics):
     print(f"{'=' * 50}")
     print(f"Loss: {aggregated_metrics['loss_mean']:.4f} ± {aggregated_metrics['loss_std']:.4f}")
     print(f"Accuracy: {aggregated_metrics['accuracy_mean']:.4f} ± {aggregated_metrics['accuracy_std']:.4f}")
-    print(f"Balanced Accuracy: {aggregated_metrics['balanced_accuracy_mean']:.4f} ± {aggregated_metrics['balanced_accuracy_std']:.4f}")
     print(f"Precision (macro): {aggregated_metrics['precision_mean']:.4f} ± {aggregated_metrics['precision_std']:.4f}")
     print(f"Recall (macro): {aggregated_metrics['recall_mean']:.4f} ± {aggregated_metrics['recall_std']:.4f}")
     print(f"F1 Score (macro): {aggregated_metrics['macro_f1_mean']:.4f} ± {aggregated_metrics['macro_f1_std']:.4f}")
