@@ -1,7 +1,6 @@
 import argparse
 import torch
 def get_args():
-    # TODO: Split arguments to config.yaml and argparser for usability
     parser = argparse.ArgumentParser('Model Training Arguments')
 
     # File paths
@@ -29,10 +28,10 @@ def get_args():
     misc_group.add_argument('-backbone', type=str, default='resnet34', choices=['resnet18', 'resnet34', 'resnet50', 'resnet101'])
     misc_group.add_argument('-seed', type=int, default=28)
     misc_group.add_argument('-device', type=str, default=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-    misc_group.add_argument('-resume', type=bool, default=True, choices=[True, False])
+    misc_group.add_argument('-resume', type=bool, default=False, choices=[True, False])
     misc_group.add_argument('-num_classes', type=int, default=4)
     misc_group.add_argument('-print_rate', type=int, default=4)
-    misc_group.add_argument('-train', type=bool, default=False)
+    misc_group.add_argument('-train', type=bool, default=True)
     misc_group.add_argument('-evaluate', type=bool, default=True)
 
     args = parser.parse_args()
