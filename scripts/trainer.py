@@ -22,7 +22,7 @@ args = get_args()
 device = args.device
 
 
-def train_cv(model, train_loader, val_loader, fold, checkpoint=None, all_fold_metrics=None):
+def train(model, train_loader, val_loader, fold, checkpoint=None, all_fold_metrics=None):
     """Training function for K-fold cross-validation
 
     Args:
@@ -38,12 +38,11 @@ def train_cv(model, train_loader, val_loader, fold, checkpoint=None, all_fold_me
         best_metrics: Best validation metrics achieved during training for this fold
     """
     # TODO: Implement early stopping
-    # TODO: Add more hyperparameters and training options here, such as batch normalization, learning rate scheduler etc.
+    # TODO: Add more hyperparameters and training options here, such as regularization, learning rate scheduler etc.
 
     # Initialize training metrics using MetricCollection
     train_metrics_tracker = MetricCollection({
-        'accuracy': MulticlassAccuracy(num_classes=args.num_classes),
-        'balanced_accuracy': MulticlassAccuracy(num_classes=args.num_classes, average='macro'),
+        'accuracy': MulticlassAccuracy(num_classes=args.num_classes, average='micro'),
         'precision': MulticlassPrecision(num_classes=args.num_classes, average='macro'),
         'recall': MulticlassRecall(num_classes=args.num_classes, average='macro'),
         'cohen_kappa': MulticlassCohenKappa(num_classes=args.num_classes),
@@ -53,8 +52,8 @@ def train_cv(model, train_loader, val_loader, fold, checkpoint=None, all_fold_me
     history = {
         "train_loss": [],
         "val_loss": [],
-        "train_bac": [],
-        "val_bac": [],
+        "train_recall": [],
+        "val_recall": [],
     }
     best_metrics = {}
     best_bac = 0.0
@@ -102,7 +101,6 @@ def train_cv(model, train_loader, val_loader, fold, checkpoint=None, all_fold_me
         train_metrics = {
             "loss": train_loss / len(train_loader),
             "accuracy": train_metrics_computed['accuracy'].item(),
-            "balanced_accuracy": train_metrics_computed['balanced_accuracy'].item(),
             "precision": train_metrics_computed['precision'].item(),
             "recall": train_metrics_computed['recall'].item(),
             "cohen_kappa": train_metrics_computed['cohen_kappa'].item(),
@@ -114,8 +112,8 @@ def train_cv(model, train_loader, val_loader, fold, checkpoint=None, all_fold_me
         # Logging metrics for plotting
         history["train_loss"].append(train_metrics["loss"])
         history["val_loss"].append(val_metrics["loss"])
-        history["train_bac"].append(train_metrics["balanced_accuracy"])
-        history["val_bac"].append(val_metrics["balanced_accuracy"])
+        history["train_recall"].append(train_metrics["recall"])
+        history["val_recall"].append(val_metrics["recall"])
 
         # Print metrics every {args.print_rate} epochs
         if (epoch + 1) % args.print_rate == 0:
@@ -134,9 +132,9 @@ def train_cv(model, train_loader, val_loader, fold, checkpoint=None, all_fold_me
         }
         torch.save(checkpoint_data, Path(args.checkpoint_dir, "checkpoint_cv.pth"))
 
-        # Save best model based on balanced accuracy score
-        if val_metrics["balanced_accuracy"] > best_bac:
-            best_bac = val_metrics["balanced_accuracy"]
+        # Save best model based on macro recall score
+        if val_metrics["recall"] > best_bac:
+            best_bac = val_metrics["recall"]
             best_metrics = val_metrics
             torch.save(model.state_dict(), f"{args.model_dir}/best_model_fold_{fold + 1}.pth")
             save_metrics_pkl(best_metrics, "validate_kfold", fold)
@@ -157,8 +155,7 @@ def validate(model, val_loader, criterion):
     """
     # Initialize validation metrics using MetricCollection
     val_metrics_tracker = MetricCollection({
-        'accuracy': MulticlassAccuracy(num_classes=args.num_classes),
-        'balanced_accuracy': MulticlassAccuracy(num_classes=args.num_classes, average='macro'),
+        'accuracy': MulticlassAccuracy(num_classes=args.num_classes, average='micro'),
         'precision': MulticlassPrecision(num_classes=args.num_classes, average='macro'),
         'recall': MulticlassRecall(num_classes=args.num_classes, average='macro'),
         'f1_macro': MulticlassF1Score(num_classes=args.num_classes, average='macro'),
@@ -202,7 +199,6 @@ def validate(model, val_loader, criterion):
     metrics = {
         "loss": val_loss / len(val_loader),
         "accuracy": val_metrics_computed['accuracy'].item(),
-        "balanced_accuracy": val_metrics_computed['balanced_accuracy'].item(),
         "precision": val_metrics_computed['precision'].item(),
         "recall": val_metrics_computed['recall'].item(),
         "macro_f1": val_metrics_computed['f1_macro'].item(),
