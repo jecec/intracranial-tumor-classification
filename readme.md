@@ -29,37 +29,32 @@ Results were achieved using transfer learning on Resnet34.
 ### Validation
 Using k-fold cross validation the following aggregated metrics were collected: (mean ± std)
 ```
-Loss: 0.0386 ± 0.0106
-Accuracy: 0.9892 ± 0.0016
-Balanced Accuracy: 0.9892 ± 0.0016
-Precision (macro): 0.9898 ± 0.0012
-Recall (macro): 0.9892 ± 0.0016
-F1 Score (macro): 0.9894 ± 0.0014
-Cohen's Kappa: 0.9858 ± 0.0023
-ROC-AUC (macro): 0.9995 ± 0.0005
-
-# Per-class metrics (classes in order: [glioma, meningioma, no_tumor, pituitary]) #
-  F1 Scores: ['0.986', '0.985', '0.994', '0.993'] ± ['0.002', '0.005', '0.004', '0.005']
-  Precision Scores: ['0.991', '0.979', '0.995', '0.993'] ± ['0.006', '0.009', '0.007', '0.006']
-  Recall Scores: ['0.981', '0.990', '0.993', '0.992'] ± ['0.008', '0.005', '0.009', '0.004']
+  Loss: 0.0403 ± 0.0192
+  Accuracy: 0.9880 ± 0.0032
+  Precision (macro): 0.9884 ± 0.0024
+  Recall (macro): 0.9880 ± 0.0033
+  F1 Score (macro): 0.9881 ± 0.0029
+  Cohen's Kappa: 0.9839 ± 0.0042
+  ROC-AUC (macro): 0.9996 ± 0.0004
+  
+  Per-class F1: ['0.986', '0.982', '0.993', '0.991'] ± ['0.005', '0.004', '0.004', '0.007']
+  Per-class Precision: ['0.991', '0.983', '0.992', '0.988'] ± ['0.008', '0.004', '0.008', '0.014']
+  Per-class Recall: ['0.982', '0.980', '0.995', '0.995'] ± ['0.008', '0.008', '0.003', '0.002']
 ```
 ### Evaluation
 Soft voting of k-fold ensemble was utilized for evaluation on the held-out test set. 
 Metrics of ensemble evaluation:
 ```
-Loss: 0.0232
-Accuracy: 0.9934
-Balanced Accuracy: 0.9934
-Precision (macro): 0.9943
-Recall (macro): 0.9934
-F1 Score (macro): 0.9938
-Cohen's Kappa: 0.9904
-ROC-AUC (macro): 0.9998
-
-# Per-class metrics (classes in order: [glioma, meningioma, no_tumor, pituitary]) #
-  F1 Scores: ['0.990', '0.989', '1.000', '0.997']
-  Precision: ['1.000', '0.981', '1.000', '0.997']
-  Recall: ['0.980', '0.997', '1.000', '0.997']
+  Loss: 0.0175
+  Accuracy: 0.9956
+  Precision: 0.9957
+  Recall: 0.9956
+  Macro F1 Score: 0.9956
+  Cohen's Kappa: 0.9932
+  ROC-AUC Macro: 0.9999
+  Per-class F1: ['0.994', '0.992', '1.000', '0.997']
+  Per-class Precision: ['0.996', '0.990', '1.000', '0.997']
+  Per-class Recall: ['0.992', '0.993', '1.000', '0.997']
 ```
 #### Confusion Matrix of ensemble evaluation:
 ![Confusion Matrix of Ensemble Predictions](results/confusion_matrix_ensemble.png)
