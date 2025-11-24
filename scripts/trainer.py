@@ -21,8 +21,32 @@ from utils import print_metrics
 args = get_args()
 device = args.device
 
+class EarlyStopper:
+    """Class for handling early stopping
 
-def train(model, train_loader, val_loader, fold, checkpoint=None, all_fold_metrics=None):
+    args:
+        patience: how many epochs to wait before early stopping
+        min_delta: minimum change in validation loss to qualify as an improvement
+    """
+
+    def __init__(self, patience=1, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.min_validation_loss = float('inf')
+
+    def early_stop(self, validation_loss):
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False
+
+
+def train(model, train_loader, val_loader, fold, checkpoint=None):
     """Training function for K-fold cross-validation
 
     Args:
@@ -30,15 +54,13 @@ def train(model, train_loader, val_loader, fold, checkpoint=None, all_fold_metri
         train_loader: Training data loader
         val_loader: Validation data loader
         fold: Current fold number
-        checkpoint: Optional checkpoint to resume from (should be from the SAME fold)
-        all_fold_metrics: List of metrics from all completed folds (for checkpoint persistence)
+        checkpoint: Optional checkpoint to resume from
 
     Returns:
         history: Dictionary containing training history for this fold
         best_metrics: Best validation metrics achieved during training for this fold
     """
-    # TODO: Implement early stopping
-    # TODO: Add more hyperparameters and training options here, such as regularization, learning rate scheduler etc.
+    # TODO: Add more hyperparameters and training options here, such as learning rate scheduler
 
     # Initialize training metrics using MetricCollection
     train_metrics_tracker = MetricCollection({
@@ -56,12 +78,15 @@ def train(model, train_loader, val_loader, fold, checkpoint=None, all_fold_metri
         "val_recall": [],
     }
     best_metrics = {}
-    best_bac = 0.0
+    best_mr = 0.0
     starting_epoch = 0
 
     # Initialize optimizer and criterion
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
     criterion = nn.CrossEntropyLoss()
+
+    # Initialize early stopping
+    early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta)
 
     # Load state from checkpoint if resuming
     if checkpoint is not None:
@@ -69,7 +94,7 @@ def train(model, train_loader, val_loader, fold, checkpoint=None, all_fold_metri
         starting_epoch = checkpoint["epoch"] + 1
         history = checkpoint["history"]
         best_metrics = checkpoint["best_metrics"]
-        best_bac = checkpoint.get("best_bac", 0.0)
+        best_mr = checkpoint.get("best_mr", 0.0)
 
     for epoch in tqdm(range(starting_epoch, args.epochs), desc=f"Training Fold {fold + 1}"):
         model.train()
@@ -127,28 +152,25 @@ def train(model, train_loader, val_loader, fold, checkpoint=None, all_fold_metri
             'optimizer': optimizer.state_dict(),
             'history': history,
             'best_metrics': best_metrics,
-            'best_bac': best_bac,
-            'all_fold_metrics': all_fold_metrics,  # Store ALL fold metrics
+            'best_mr': best_mr,
         }
         torch.save(checkpoint_data, Path(args.checkpoint_dir, "checkpoint_cv.pth"))
 
         # Save best model based on macro recall score
-        if val_metrics["recall"] > best_bac:
-            best_bac = val_metrics["recall"]
+        if val_metrics["recall"] > best_mr:
+            best_mr = val_metrics["recall"]
             best_metrics = val_metrics
             torch.save(model.state_dict(), f"{args.model_dir}/best_model_fold_{fold + 1}.pth")
             save_metrics_pkl(best_metrics, "validate_kfold", fold)
+        if early_stopper.early_stop(val_metrics["loss"]):
+            print(f"Early stopping at epoch {epoch}")
+            return history, best_metrics
 
     return history, best_metrics
 
 
 def validate(model, val_loader, criterion):
     """Validation function for computing metrics on validation set
-
-    Args:
-        model: Neural network model
-        val_loader: Validation data loader
-        criterion: Loss function
 
     Returns:
         metrics: Dictionary of validation metrics
