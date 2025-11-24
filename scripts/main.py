@@ -37,7 +37,6 @@ def main():
                 checkpoint = torch.load(Path(args.checkpoint_dir, "checkpoint_cv.pth"), weights_only=False,
                                         map_location="cpu")
                 starting_fold = checkpoint["fold"]
-                fold_metrics = checkpoint["all_fold_metrics"]
                 print(f"\nLoaded checkpoint {Path(args.checkpoint_dir, 'checkpoint_cv.pth')}")
                 print(f"Resuming training from Fold {starting_fold + 1} and Epoch {checkpoint['epoch'] + 1}")
                 resume_training = True
@@ -66,7 +65,6 @@ def main():
                 shuffle=True,
                 num_workers=args.num_workers,
                 pin_memory=torch.cuda.is_available(),
-                prefetch_factor=args.pre_fetch,
                 persistent_workers=True
             )
             val_loader = DataLoader(
@@ -75,7 +73,6 @@ def main():
                 shuffle=False,
                 num_workers=args.num_workers,
                 pin_memory=torch.cuda.is_available(),
-                prefetch_factor=args.pre_fetch,
                 persistent_workers=True
             )
 
@@ -88,14 +85,12 @@ def main():
                 model = PreTrainedModel(args.backbone, pretrained=True).to(device)
 
             # 5. Train the model
-            # Pass all_fold_metrics to ensure checkpoint saves complete history
             history, val_metrics = train(
                 model=model,
                 train_loader=train_loader,
                 val_loader=val_loader,
                 fold=fold,
                 checkpoint=checkpoint if resume_training else None,
-                all_fold_metrics=fold_metrics
             )
 
             # Append current fold's best validation metrics
