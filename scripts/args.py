@@ -16,11 +16,13 @@ def get_args():
     # Training hyperparameters
     train_group = parser.add_argument_group('Training Options')
     train_group.add_argument('-batch_size', type=int, default=32, choices=[16, 24, 32])
-    train_group.add_argument('-num_workers', type=int, default=8, choices=[4, 6, 8])
-    train_group.add_argument('-pre_fetch', type=int, default=4, choices=[1, 2, 4])
-    train_group.add_argument('-epochs', type=int, default=8, choices=[5, 10, 15])
+    train_group.add_argument('-num_workers', type=int, default=4, choices=[4, 6, 8])
+    train_group.add_argument('-epochs', type=int, default=50, choices=[5, 10, 15])
     train_group.add_argument('-lr', type=float, default=1e-4, choices=[1e-3, 1e-4, 1e-5])
+    train_group.add_argument('-wd', type=float, default=1e-4, choices=[1e-3, 1e-4, 1e-5])
     train_group.add_argument('-folds', type=int, default=5)
+    train_group.add_argument('-patience', type=int, default=5)
+    train_group.add_argument('-min_delta', type=float, default=0.001)
 
 
     # Miscellaneous options such as resume for resuming training from saved checkpoints
