@@ -141,9 +141,9 @@ def transforms(phase):
         v2.ToImage(),
         v2.ToDtype(torch.float32, scale=True),
         v2.Resize((224, 224), antialias=True),
-        v2.RandomRotation(15),
+        v2.RandomRotation(20),
         v2.RandomHorizontalFlip(p=0.5),
-        v2.ColorJitter(brightness=0.2, contrast=0.2),
+        v2.ColorJitter(brightness=0.3, contrast=0.3),
         v2.Normalize(mean=[0.485, 0.456, 0.406],
                         std=[0.229, 0.224, 0.225])
 
