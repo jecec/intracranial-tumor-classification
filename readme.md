@@ -59,7 +59,7 @@ Per-class Precision: ['0.996', '0.990', '1.000', '0.997']
 Per-class Recall: ['0.992', '0.997', '1.000', '0.993']
 ```
 #### Confusion Matrix of ensemble evaluation:
-![Confusion Matrix of Ensemble Predictions](results/confusion_matrix_ensemble.png)
+![Confusion Matrix of Ensemble Predictions]()
 
 ## Dataset Attribution
 This project uses the **BRISC 2025** dataset (https://www.kaggle.com/datasets/briscdataset/brisc2025), 
