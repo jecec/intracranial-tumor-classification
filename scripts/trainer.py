@@ -29,17 +29,23 @@ class EarlyStopper:
         min_delta: minimum change in validation loss to qualify as an improvement
     """
 
-    def __init__(self, patience=1, min_delta=0):
+    def __init__(self, patience=1, min_delta=0, mode="min"):
         self.patience = patience
         self.min_delta = min_delta
+        self.mode = mode
         self.counter = 0
-        self.min_validation_loss = float('inf')
+        self.best_value = float('inf') if mode == 'min' else float('-inf')
 
-    def early_stop(self, validation_loss):
-        if validation_loss < self.min_validation_loss:
-            self.min_validation_loss = validation_loss
+    def early_stop(self, current_value):
+        if self.mode == 'min':
+            improved = current_value < (self.best_value - self.min_delta)
+        else:
+            improved = current_value > (self.best_value + self.min_delta)
+
+        if improved:
+            self.best_value = current_value
             self.counter = 0
-        elif validation_loss > (self.min_validation_loss + self.min_delta):
+        else:
             self.counter += 1
             if self.counter >= self.patience:
                 return True
@@ -78,15 +84,21 @@ def train(model, train_loader, val_loader, fold, checkpoint=None):
         "val_recall": [],
     }
     best_metrics = {}
-    best_mr = 0.0
+    best_f1 = 0.0
     starting_epoch = 0
 
     # Initialize optimizer and criterion
+    class_weights = torch.tensor([
+        1.5,
+        1.5,
+        1.0,
+        1.5,
+    ]).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
 
     # Initialize early stopping
-    early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta)
+    early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta, mode=args.mode)
 
     # Load state from checkpoint if resuming
     if checkpoint is not None:
@@ -94,7 +106,7 @@ def train(model, train_loader, val_loader, fold, checkpoint=None):
         starting_epoch = checkpoint["epoch"] + 1
         history = checkpoint["history"]
         best_metrics = checkpoint["best_metrics"]
-        best_mr = checkpoint.get("best_mr", 0.0)
+        best_f1 = checkpoint.get("best_f1", 0.0)
 
     for epoch in tqdm(range(starting_epoch, args.epochs), desc=f"Training Fold {fold + 1}"):
         model.train()
@@ -152,13 +164,13 @@ def train(model, train_loader, val_loader, fold, checkpoint=None):
             'optimizer': optimizer.state_dict(),
             'history': history,
             'best_metrics': best_metrics,
-            'best_mr': best_mr,
+            'best_f1': best_f1,
         }
         torch.save(checkpoint_data, Path(args.checkpoint_dir, "checkpoint_cv.pth"))
 
         # Save best model based on macro recall score
-        if val_metrics["recall"] > best_mr:
-            best_mr = val_metrics["recall"]
+        if val_metrics["macro_f1"] > best_f1:
+            best_f1 = val_metrics["macro_f1"]
             best_metrics = val_metrics
             torch.save(model.state_dict(), f"{args.model_dir}/best_model_fold_{fold + 1}.pth")
             save_metrics_pkl(best_metrics, "validate_kfold", fold)
