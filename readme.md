@@ -49,11 +49,11 @@ Metrics of ensemble evaluation:
 ```
 Loss: 0.0215
 Accuracy: 0.9957
-Precision: 0.9956
-Recall: 0.9957
-Macro F1 Score: 0.9957
+Precision (macro): 0.9956
+Recall (macro): 0.9957
+F1 Score (macro): 0.9957
 Cohen's Kappa: 0.9932
-ROC-AUC Macro: 0.9997
+ROC-AUC (macro): 0.9997
 Per-class F1: ['0.994', '0.992', '1.000', '0.997']
 Per-class Precision: ['0.992', '0.990', '1.000', '1.000']
 Per-class Recall: ['0.996', '0.993', '1.000', '0.993']
