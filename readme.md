@@ -26,37 +26,37 @@ Noteworthy arguments for controlling training and evaluation:
 These can be beneficial if your training loop terminates suddenly, or you want to only train or evaluate the model.
 
 ## Results
-Results were achieved using transfer learning on Resnet34. With the default parameters of args.py used.
+Results were achieved using transfer learning on Resnet34 with the default hyperparameters of args.py used.
 
 ### Validation
 Using k-fold cross validation the following aggregated metrics were collected: (mean ± std)
 ```
-Loss: 0.0436 ± 0.0159
-Accuracy: 0.9890 ± 0.0051
-Precision (macro): 0.9891 ± 0.0049
-Recall (macro): 0.9893 ± 0.0051
-F1 Score (macro): 0.9892 ± 0.0050
-Cohen's Kappa: 0.9853 ± 0.0068
-ROC-AUC (macro): 0.9995 ± 0.0004
+Loss: 0.0361 ± 0.0130
+Accuracy: 0.9898 ± 0.0035
+Precision (macro): 0.9902 ± 0.0033
+Recall (macro): 0.9897 ± 0.0034
+F1 Score (macro): 0.9899 ± 0.0033
+Cohen's Kappa: 0.9863 ± 0.0047
+ROC-AUC (macro): 0.9996 ± 0.0003
 
-Per-class F1: ['0.989', '0.981', '0.994', '0.992'] ± ['0.006', '0.009', '0.004', '0.004']
-Per-class Precision: ['0.990', '0.981', '0.992', '0.994'] ± ['0.004', '0.012', '0.006', '0.006']
-Per-class Recall: ['0.988', '0.981', '0.997', '0.991'] ± ['0.012', '0.008', '0.004', '0.003']
+Per-class F1: ['0.988', '0.985', '0.994', '0.992'] ± ['0.002', '0.006', '0.003', '0.005']
+Per-class Precision: ['0.990', '0.984', '0.996', '0.990'] ± ['0.006', '0.004', '0.005', '0.007']
+Per-class Recall: ['0.986', '0.985', '0.992', '0.995'] ± ['0.006', '0.010', '0.004', '0.003']
 ```
 ### Evaluation
 Soft voting of k-fold ensemble was utilized for evaluation on the held-out test set. 
 Metrics of ensemble evaluation:
 ```
-Loss: 0.0176
-Accuracy: 0.9955
-Precision: 0.9957
-Recall: 0.9955
-Macro F1 Score: 0.9956
+Loss: 0.0215
+Accuracy: 0.9957
+Precision: 0.9956
+Recall: 0.9957
+Macro F1 Score: 0.9957
 Cohen's Kappa: 0.9932
-ROC-AUC Macro: 0.9999
-Per-class F1: ['0.994', '0.993', '1.000', '0.995']
-Per-class Precision: ['0.996', '0.990', '1.000', '0.997']
-Per-class Recall: ['0.992', '0.997', '1.000', '0.993']
+ROC-AUC Macro: 0.9997
+Per-class F1: ['0.994', '0.992', '1.000', '0.997']
+Per-class Precision: ['0.992', '0.990', '1.000', '1.000']
+Per-class Recall: ['0.996', '0.993', '1.000', '0.993']
 ```
 #### Confusion Matrix of ensemble evaluation:
 ![Confusion Matrix of Ensemble Predictions](results/confusion_matrix_ensemble.png)
