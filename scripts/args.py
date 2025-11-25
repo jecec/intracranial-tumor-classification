@@ -22,7 +22,8 @@ def get_args():
     train_group.add_argument('-wd', type=float, default=1e-4, choices=[1e-3, 1e-4, 1e-5])
     train_group.add_argument('-folds', type=int, default=5)
     train_group.add_argument('-patience', type=int, default=5)
-    train_group.add_argument('-min_delta', type=float, default=0.001)
+    train_group.add_argument('-min_delta', type=float, default=0.0005)
+    train_group.add_argument('-mode', type=str, default="min", choices=["min", "max"])
 
 
     # Miscellaneous options such as resume for resuming training from saved checkpoints
