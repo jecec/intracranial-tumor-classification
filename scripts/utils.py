@@ -148,7 +148,7 @@ def print_aggregated_metrics(aggregated_metrics):
     """Function for printing validation metrics aggregated over folds"""
     # Print aggregated results
     print(f"\n{'=' * 50}")
-    print("AGGREGATED TEST SET RESULTS (ACROSS ALL FOLDS)")
+    print("AGGREGATED VALIDATION SET RESULTS (ACROSS ALL FOLDS)")
     print(f"{'=' * 50}")
     print(f"Loss: {aggregated_metrics['loss_mean']:.4f} ± {aggregated_metrics['loss_std']:.4f}")
     print(f"Accuracy: {aggregated_metrics['accuracy_mean']:.4f} ± {aggregated_metrics['accuracy_std']:.4f}")
