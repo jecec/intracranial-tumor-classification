@@ -31,32 +31,32 @@ Results were achieved using transfer learning on Resnet34 with the default hyper
 ### Validation
 Using k-fold cross validation the following aggregated metrics were collected: (mean ± std)
 ```
-Loss: 0.0361 ± 0.0130
-Accuracy: 0.9898 ± 0.0035
-Precision (macro): 0.9902 ± 0.0033
-Recall (macro): 0.9897 ± 0.0034
-F1 Score (macro): 0.9899 ± 0.0033
-Cohen's Kappa: 0.9863 ± 0.0047
-ROC-AUC (macro): 0.9996 ± 0.0003
+Loss: 0.0498 ± 0.0165
+Accuracy: 0.9890 ± 0.0038
+Precision (macro): 0.9897 ± 0.0035
+Recall (macro): 0.9889 ± 0.0039
+F1 Score (macro): 0.9892 ± 0.0037
+Cohen's Kappa: 0.9853 ± 0.0051
+ROC-AUC (macro): 0.9991 ± 0.0005
 
-Per-class F1: ['0.988', '0.985', '0.994', '0.992'] ± ['0.002', '0.006', '0.003', '0.005']
-Per-class Precision: ['0.990', '0.984', '0.996', '0.990'] ± ['0.006', '0.004', '0.005', '0.007']
-Per-class Recall: ['0.986', '0.985', '0.992', '0.995'] ± ['0.006', '0.010', '0.004', '0.003']
+Per-class F1: ['0.988', '0.982', '0.996', '0.991'] ± ['0.005', '0.007', '0.003', '0.003']
+Per-class Precision: ['0.990', '0.988', '0.997', '0.984'] ± ['0.012', '0.010', '0.004', '0.006']
+Per-class Recall: ['0.986', '0.977', '0.994', '0.999'] ± ['0.008', '0.015', '0.005', '0.002']
 ```
 ### Evaluation
 Soft voting of k-fold ensemble was utilized for evaluation on the held-out test set. 
 Metrics of ensemble evaluation:
 ```
-Loss: 0.0215
-Accuracy: 0.9957
-Precision (macro): 0.9956
-Recall (macro): 0.9957
-F1 Score (macro): 0.9957
-Cohen's Kappa: 0.9932
-ROC-AUC (macro): 0.9997
-Per-class F1: ['0.994', '0.992', '1.000', '0.997']
-Per-class Precision: ['0.992', '0.990', '1.000', '1.000']
-Per-class Recall: ['0.996', '0.993', '1.000', '0.993']
+Loss: 0.0237
+Accuracy: 0.9947
+Precision (macro): 0.9949
+Recall (macro): 0.9947
+F1 Score (macro): 0.9948
+Cohen's Kappa: 0.9918
+ROC-AUC (macro): 0.9998
+Per-class F1: ['0.994', '0.990', '1.000', '0.995']
+Per-class Precision: ['0.996', '0.987', '1.000', '0.997']
+Per-class Recall: ['0.992', '0.993', '1.000', '0.993']
 ```
 #### Confusion Matrix of ensemble evaluation:
 ![Confusion Matrix of Ensemble Predictions](results/confusion_matrix_ensemble.png)
