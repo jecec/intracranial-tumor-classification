@@ -88,14 +88,8 @@ def train(model, train_loader, val_loader, fold, checkpoint=None):
     starting_epoch = 0
 
     # Initialize optimizer and criterion
-    class_weights = torch.tensor([
-        1.5,
-        1.5,
-        1.0,
-        1.5,
-    ]).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
-    criterion = nn.CrossEntropyLoss(weight=class_weights)
+    criterion = nn.CrossEntropyLoss()
 
     # Initialize early stopping
     early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta, mode=args.mode)
