@@ -27,7 +27,7 @@ class PreTrainedModel(nn.Module):
 
         # Freezing chosen model layers
         for name, layer in self.model.named_children():
-            if name in ['conv1', 'bn1', 'layer1', 'layer2']:
+            if name in ['conv1', 'bn1', 'layer1']:
                 for param in layer.parameters():
                     param.requires_grad = False
 
